@@ -8,6 +8,37 @@ const nextConfig = {
     serverComponentsExternalPackages: ['@prisma/client'],
   },
   
+  // Ensure proper module resolution
+  webpack: (config, { dev, isServer }) => {
+    // Add resolve alias for better path resolution
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, 'src'),
+    }
+    
+    // Optimize for production
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            enforce: true,
+          },
+        },
+      }
+    }
+    
+    return config
+  },
+  
   // Optimize images
   images: {
     formats: ['image/webp', 'image/avif'],

@@ -3,10 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { quizQuestionSchema, validateData } from '@/lib/validation'
-import { withAPIRateLimit } from '@/lib/rate-limit'
 import { handleError, handleDatabaseError, NotFoundError } from '@/lib/error-handling'
 
-export const GET = withAPIRateLimit(async (
+export const GET = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) => {
@@ -70,7 +69,7 @@ export const GET = withAPIRateLimit(async (
   }
 })
 
-export const POST = withAPIRateLimit(async (
+export const POST = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) => {

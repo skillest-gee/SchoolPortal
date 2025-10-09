@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { withAPIRateLimit } from '@/lib/rate-limit'
 import { handleError, handleDatabaseError, NotFoundError } from '@/lib/error-handling'
 
-export const GET = withAPIRateLimit(async (
+export const GET = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) => {
@@ -85,9 +84,9 @@ export const GET = withAPIRateLimit(async (
   } catch (error) {
     return handleError(error, `/api/assignments/${params.id}`)
   }
-})
+}
 
-export const PUT = withAPIRateLimit(async (
+export const PUT = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) => {
@@ -210,4 +209,4 @@ export const DELETE = withAPIRateLimit(async (
   } catch (error) {
     return handleError(handleDatabaseError(error), `/api/assignments/${params.id}`)
   }
-})
+}

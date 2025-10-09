@@ -3,10 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { submissionSchema, validateData } from '@/lib/validation'
-import { withAPIRateLimit } from '@/lib/rate-limit'
 import { handleError, handleDatabaseError, NotFoundError, ConflictError } from '@/lib/error-handling'
 
-export const POST = withAPIRateLimit(async (
+export const POST = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) => {
@@ -118,7 +117,7 @@ export const POST = withAPIRateLimit(async (
   } catch (error) {
     return handleError(handleDatabaseError(error), `/api/assignments/${params.id}/submit`)
   }
-})
+}
 
 export const PUT = withAPIRateLimit(async (
   request: NextRequest,

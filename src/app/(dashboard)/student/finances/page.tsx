@@ -232,7 +232,7 @@ export default function StudentFinancesPage() {
 
       if (data.success) {
         // Refresh data
-        await fetchFees()
+        await fetchFinancialData()
         setShowPaymentForm(false)
         setSelectedFee(null)
         setPaymentForm({

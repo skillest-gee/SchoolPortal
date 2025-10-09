@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { withAPIRateLimit } from '@/lib/rate-limit'
 import { handleError, handleDatabaseError, NotFoundError, ConflictError } from '@/lib/error-handling'
 
-export const POST = withAPIRateLimit(async (
+export const POST = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) => {
