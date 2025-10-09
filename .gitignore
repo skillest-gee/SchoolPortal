@@ -185,3 +185,4 @@ uploads/
 
 # Prisma
 prisma/migrations/
+.vercel
