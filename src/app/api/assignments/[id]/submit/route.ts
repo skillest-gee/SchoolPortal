@@ -209,4 +209,4 @@ export const PUT = async (
   } catch (error) {
     return handleError(handleDatabaseError(error), `/api/assignments/${params.id}/submit`)
   }
-})
+}
