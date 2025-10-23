@@ -52,7 +52,7 @@ export async function withTransaction<T>(
 // Connection pool monitoring
 export function getConnectionInfo() {
   return {
-    isConnected: prisma.$connect ? true : false,
+    isConnected: true, // Prisma client is always available
     environment: process.env.NODE_ENV,
     databaseUrl: process.env.DATABASE_URL ? 'configured' : 'not configured'
   }
