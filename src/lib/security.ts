@@ -64,7 +64,7 @@ export function generateSecureToken(length: number = 32): string {
 
 // Generate MFA secret
 export function generateMFASecret(): string {
-  return crypto.randomBytes(20).toString('base32')
+  return crypto.randomBytes(20).toString('hex')
 }
 
 // Generate TOTP code
