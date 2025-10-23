@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { submissionSchema, validateData } from '@/lib/validation'
 import { handleError, handleDatabaseError, NotFoundError, ConflictError } from '@/lib/error-handling'
+import { withAPIRateLimit } from '@/lib/rate-limit'
 
 export const POST = async (
   request: NextRequest,
@@ -91,7 +92,7 @@ export const POST = async (
         assignmentId: params.id,
         studentId: session.user.id,
         fileUrl: submissionData.fileUrl,
-        content: submissionData.content,
+        comments: submissionData.content,
         status: 'SUBMITTED',
         submittedAt: now
       },
@@ -181,7 +182,7 @@ export const PUT = withAPIRateLimit(async (
     const updatedSubmission = await prisma.submission.update({
       where: { id: existingSubmission.id },
       data: {
-        content: content || existingSubmission.content,
+        comments: content || existingSubmission.comments,
         fileUrl: fileUrl || existingSubmission.fileUrl,
         status: 'SUBMITTED',
         submittedAt: now

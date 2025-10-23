@@ -93,7 +93,10 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         courses: coursesWithEnrollmentStatus,
-        totalCredits: existingEnrollments.length,
+        totalCredits: existingEnrollments.reduce((sum, enrollment) => {
+          const course = courses.find(c => c.id === enrollment.courseId)
+          return sum + (course?.credits || 0)
+        }, 0),
         canRegister,
         registrationStatus,
         studentProfile: {

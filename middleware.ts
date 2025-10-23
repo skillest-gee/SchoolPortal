@@ -19,6 +19,7 @@ export default withAuth(
       '/admin': ['ADMIN'],
       '/lecturer': ['LECTURER'],
       '/student': ['STUDENT'],
+      '/dashboard': ['ADMIN', 'LECTURER', 'STUDENT'],
     }
 
     // Check if the current path requires specific role

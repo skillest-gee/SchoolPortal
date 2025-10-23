@@ -45,36 +45,17 @@ const nextConfig = {
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    domains: ['localhost', 'vercel.app'],
+    domains: [
+      'localhost',
+      ...(process.env.NEXT_PUBLIC_IMAGE_DOMAINS
+        ? process.env.NEXT_PUBLIC_IMAGE_DOMAINS.split(',').map(d => d.trim()).filter(Boolean)
+        : ['vercel.app'])
+    ],
   },
   
   // Enable compression
   compress: true,
-  
-  // Optimize bundle
-  webpack: (config, { dev, isServer }) => {
-    // Optimize for production
-    if (!dev && !isServer) {
-      config.optimization.splitChunks = {
-        chunks: 'all',
-        cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            chunks: 'all',
-          },
-          common: {
-            name: 'common',
-            minChunks: 2,
-            chunks: 'all',
-            enforce: true,
-          },
-        },
-      }
-    }
-    
-    return config
-  },
+
   
   // Enable static optimization for Vercel
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,

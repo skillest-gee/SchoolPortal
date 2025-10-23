@@ -51,4 +51,4 @@ export const PUT = async (
   } catch (error) {
     return handleError(handleDatabaseError(error), `/api/notifications/${params.id}/read`)
   }
-})
+}

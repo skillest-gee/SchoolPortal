@@ -136,4 +136,4 @@ export const PUT = async (
   } catch (error) {
     return handleError(handleDatabaseError(error), `/api/submissions/${params.id}/grade`)
   }
-})
+}

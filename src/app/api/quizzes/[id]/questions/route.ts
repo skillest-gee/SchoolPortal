@@ -67,7 +67,7 @@ export const GET = async (
   } catch (error) {
     return handleError(error, `/api/quizzes/${params.id}/questions`)
   }
-})
+}
 
 export const POST = async (
   request: NextRequest,
@@ -139,4 +139,4 @@ export const POST = async (
   } catch (error) {
     return handleError(handleDatabaseError(error), `/api/quizzes/${params.id}/questions`)
   }
-})
+}

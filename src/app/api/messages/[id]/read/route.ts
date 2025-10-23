@@ -79,4 +79,4 @@ export const PUT = async (
   } catch (error) {
     return handleError(handleDatabaseError(error), `/api/messages/${params.id}/read`)
   }
-})
+}

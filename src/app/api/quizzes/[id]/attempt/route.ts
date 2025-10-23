@@ -166,4 +166,4 @@ export const POST = async (
   } catch (error) {
     return handleError(handleDatabaseError(error), `/api/quizzes/${params.id}/attempt`)
   }
-})
+}

@@ -7,6 +7,8 @@ import { validateLoginAttempt, trackLoginAttempt } from '@/lib/account-security'
 import { prisma } from './prisma'
 import { UserRole } from '@/types'
 
+const isDev = process.env.NODE_ENV === 'development'
+
 export const authOptions: NextAuthOptions = {
   // adapter: PrismaAdapter(prisma), // Disabled for credentials provider
   providers: [
@@ -17,10 +19,10 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        console.log('🔐 NextAuth authorize called with:', credentials?.email)
+        if (isDev) console.log('🔐 NextAuth authorize called')
         
         if (!credentials?.email || !credentials?.password) {
-          console.log('❌ Missing credentials')
+          if (isDev) console.log('❌ Missing credentials')
           return null
         }
 
@@ -60,10 +62,10 @@ export const authOptions: NextAuthOptions = {
             })
           }
 
-          console.log('👤 User found:', user ? (user.email || user.indexNumber) : 'null')
+          if (isDev) console.log('👤 User found:', !!user)
 
           if (!user || !user.passwordHash) {
-            console.log('❌ User not found or no password hash')
+            if (isDev) console.log('❌ User not found or no password hash')
             return null
           }
 
@@ -72,10 +74,10 @@ export const authOptions: NextAuthOptions = {
             user.passwordHash
           )
 
-          console.log('🔑 Password valid:', isPasswordValid)
+          if (isDev) console.log('🔑 Password valid:', isPasswordValid)
 
           if (!isPasswordValid) {
-            console.log('❌ Invalid password')
+            if (isDev) console.log('❌ Invalid password')
             // Track failed login attempt
             await trackLoginAttempt({
               email: credentials.email,
@@ -96,7 +98,7 @@ export const authOptions: NextAuthOptions = {
             userAgent: 'Unknown'
           })
 
-          console.log('✅ Authentication successful for:', user.email || user.indexNumber)
+          if (isDev) console.log('✅ Authentication successful')
           return {
             id: user.id,
             email: user.email,
@@ -106,15 +108,19 @@ export const authOptions: NextAuthOptions = {
             indexNumber: user.indexNumber,
           }
         } catch (error) {
-          console.error('❌ Auth error:', error)
+          console.error('❌ Auth error')
           return null
         }
       }
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          })
+        ]
+      : []),
   ],
   session: {
     strategy: 'jwt',
@@ -156,5 +162,5 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/auth/login',
   },
-  debug: process.env.NODE_ENV === 'development',
+  debug: isDev,
 }

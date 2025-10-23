@@ -157,9 +157,9 @@ export const PUT = async (
   } catch (error) {
     return handleError(handleDatabaseError(error), `/api/assignments/${params.id}`)
   }
-})
+}
 
-export const DELETE = withAPIRateLimit(async (
+export const DELETE = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) => {
