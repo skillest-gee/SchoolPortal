@@ -52,8 +52,7 @@ export const PUT = async (
     const updatedMessage = await prisma.message.update({
       where: { id: params.id },
       data: {
-        isRead: true,
-        readAt: new Date()
+        isRead: true
       },
       include: {
         sender: {
