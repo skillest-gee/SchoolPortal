@@ -14,7 +14,7 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { enhancedFetch, retryWithBackoff, parseApiError, getUserFriendlyMessage } from '@/lib/error-handling'
+import { parseApiError, getUserFriendlyMessage } from '@/lib/error-handling'
 
 interface DataLoaderProps<T> {
   url: string | null
@@ -97,11 +97,7 @@ export function DataLoader<T>({
     }))
 
     try {
-      const result = await retryWithBackoff(
-        () => enhancedFetch(url),
-        retries,
-        retryDelay
-      )
+      const result = await fetch(url)
 
       if (result.ok) {
         const data = await result.json()
