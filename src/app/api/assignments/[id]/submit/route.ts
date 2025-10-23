@@ -120,7 +120,7 @@ export const POST = async (
   }
 }
 
-export const PUT = withAPIRateLimit(async (
+export const PUT = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) => {
