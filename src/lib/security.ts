@@ -72,7 +72,7 @@ export function generateTOTPCode(secret: string): string {
   const epoch = Math.round(Date.now() / 1000.0)
   const time = Math.floor(epoch / 30)
   
-  const hmac = crypto.createHmac('sha1', Buffer.from(secret, 'base32'))
+  const hmac = crypto.createHmac('sha1', Buffer.from(secret, 'hex'))
   hmac.update(Buffer.from(time.toString(16).padStart(16, '0'), 'hex'))
   const hash = hmac.digest()
   
