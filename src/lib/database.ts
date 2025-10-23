@@ -44,7 +44,9 @@ export async function disconnectDatabase(): Promise<void> {
 export async function withTransaction<T>(
   callback: (tx: PrismaClient) => Promise<T>
 ): Promise<T> {
-  return await prisma.$transaction(callback)
+  return await prisma.$transaction(async (tx) => {
+    return await callback(tx)
+  })
 }
 
 // Connection pool monitoring
