@@ -42,7 +42,7 @@ export async function disconnectDatabase(): Promise<void> {
 
 // Database transaction helper
 export async function withTransaction<T>(
-  callback: (tx: PrismaClient) => Promise<T>
+  callback: (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => Promise<T>
 ): Promise<T> {
   return await prisma.$transaction(async (tx) => {
     return await callback(tx)
