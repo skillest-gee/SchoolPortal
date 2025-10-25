@@ -145,8 +145,8 @@ export function isValidPhoneNumber(phone: string): boolean {
 
 // Index number validation
 export function isValidIndexNumber(indexNumber: string): boolean {
-  // Format: CS/ITC/21/0001 or similar
-  const indexRegex = /^[A-Z]{2,4}\/[A-Z]{2,4}\/\d{2}\/\d{4}$/
+  // Format: STU2024001 or similar
+  const indexRegex = /^STU\d{4}\d{3}$/
   return indexRegex.test(indexNumber)
 }
 

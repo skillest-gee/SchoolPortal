@@ -54,9 +54,29 @@ const programmeFees = {
 
 // Function to create programme-specific fees
 async function createProgrammeFees(studentId: string, programme: string) {
-  const fees = programmeFees[programme as keyof typeof programmeFees]
+  // Try exact match first
+  let fees = programmeFees[programme as keyof typeof programmeFees]
+  
+  // If no exact match, try partial matching for common programme names
+  if (!fees) {
+    const programmeUpper = programme.toUpperCase()
+    
+    if (programmeUpper.includes('COMPUTER SCIENCE') || programmeUpper.includes('CS')) {
+      fees = programmeFees['BACHELOR OF SCIENCE (COMPUTER SCIENCE)']
+    } else if (programmeUpper.includes('INFORMATION TECHNOLOGY') || programmeUpper.includes('IT')) {
+      fees = programmeFees['BACHELOR OF SCIENCE (INFORMATION TECHNOLOGY)']
+    } else if (programmeUpper.includes('SOFTWARE ENGINEERING') || programmeUpper.includes('SE')) {
+      fees = programmeFees['BACHELOR OF SCIENCE (SOFTWARE ENGINEERING)']
+    } else if (programmeUpper.includes('BUSINESS ADMINISTRATION') || programmeUpper.includes('BA')) {
+      fees = programmeFees['BACHELOR OF ARTS (BUSINESS ADMINISTRATION)']
+    } else if (programmeUpper.includes('ACCOUNTING')) {
+      fees = programmeFees['BACHELOR OF SCIENCE (ACCOUNTING)']
+    }
+  }
+  
   if (!fees) {
     console.log(`⚠️ No fee structure defined for programme: ${programme}`)
+    console.log(`Available programmes: ${Object.keys(programmeFees).join(', ')}`)
     return
   }
 

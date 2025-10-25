@@ -131,7 +131,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="text"
-                  placeholder="Students: Use index number (e.g., CS/ITC/21/0001) | Staff: Use email"
+                  placeholder="Students: Use student ID (e.g., STU2024001) | Staff: Use email"
                   {...register('email')}
                   className={errors.email ? 'border-red-500' : ''}
                 />
@@ -170,7 +170,7 @@ export default function LoginPage() {
               </div>
 
               <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                <p><strong>Students:</strong> Use your index number (e.g., CS/ITC/21/0001)</p>
+                <p><strong>Students:</strong> Use your student ID (e.g., STU2024001)</p>
                 <p><strong>Staff:</strong> Use your email address</p>
               </div>
 

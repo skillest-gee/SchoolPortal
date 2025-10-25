@@ -167,7 +167,7 @@ export default function LoginPage() {
             <div className="mt-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
               <h3 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">Demo Credentials:</h3>
               <div className="space-y-1 text-xs text-gray-600">
-                <div className="break-all"><strong>Student:</strong> CS/ITC/21/0001 / student123</div>
+                <div className="break-all"><strong>Student:</strong> STU2024001 / student123</div>
                 <div className="break-all"><strong>Admin:</strong> admin@school.edu / admin123</div>
                 <div className="break-all"><strong>Lecturer:</strong> lecturer@school.edu / lecturer123</div>
               </div>
