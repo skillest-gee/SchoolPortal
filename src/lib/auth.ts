@@ -39,19 +39,23 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
-          // For students, only allow index number login
+          // For students, allow student ID login (format: STU2024001)
           // For other roles, allow email login
           let user
           if (credentials.email.includes('STU')) {
             // If it contains 'STU', it's likely a student ID (format: STU2024001)
             // Convert to uppercase to handle case sensitivity
-            const indexNumber = credentials.email.toUpperCase()
-            user = await prisma.user.findFirst({
-              where: {
-                indexNumber: indexNumber,
-                role: 'STUDENT'
-              }
+            const studentId = credentials.email.toUpperCase()
+            
+            // Find user by student profile
+            const studentProfile = await prisma.studentProfile.findUnique({
+              where: { studentId: studentId },
+              include: { user: true }
             })
+            
+            if (studentProfile) {
+              user = studentProfile.user
+            }
           } else {
             // For non-students (admin, lecturer), use email (case insensitive)
             user = await prisma.user.findFirst({
