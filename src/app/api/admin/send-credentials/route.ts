@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const loginCredentialsEmail = generateLoginCredentialsEmail({
       studentName: student.name || `${student.studentProfile.firstName} ${student.studentProfile.lastName}`,
       email: student.email,
-      indexNumber: student.indexNumber || student.studentProfile.studentId,
+      studentId: student.studentProfile?.studentId || 'N/A',
       password: password,
       hallOfResidence: validatedData.hallOfResidence || 'To be assigned',
       loginUrl: `${process.env.NEXTAUTH_URL}/auth/login`,
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     // Log the action
     console.log(`✅ Login credentials sent to student: ${student.email}`)
-    console.log(`   Index Number: ${student.indexNumber}`)
+    console.log(`   Student ID: ${student.studentProfile?.studentId}`)
     console.log(`   Email ID: ${emailResult.messageId}`)
 
     return NextResponse.json({
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       message: 'Login credentials sent successfully',
       data: {
         studentEmail: student.email,
-        indexNumber: student.indexNumber,
+        studentId: student.studentProfile?.studentId,
         emailId: emailResult.messageId,
         hallOfResidence: validatedData.hallOfResidence || 'To be assigned'
       }

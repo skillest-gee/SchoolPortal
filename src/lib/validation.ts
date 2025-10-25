@@ -20,10 +20,10 @@ export const phoneSchema = z.string()
   .max(15, 'Phone number is too long')
   .regex(/^[\+]?[1-9][\d]{0,15}$/, 'Invalid phone number format')
 
-export const indexNumberSchema = z.string()
-  .min(1, 'Index number is required')
-  .max(20, 'Index number is too long')
-  .regex(/^[A-Z]{2,4}\/[A-Z]{2,4}\/\d{2}\/\d{4}$/, 'Invalid index number format')
+export const studentIdSchema = z.string()
+  .min(1, 'Student ID is required')
+  .max(20, 'Student ID is too long')
+  .regex(/^STU\d{4}\d{3}$/, 'Invalid student ID format (e.g., STU2024001)')
 
 export const nameSchema = z.string()
   .min(1, 'Name is required')
@@ -37,13 +37,13 @@ export const userRegistrationSchema = z.object({
   password: passwordSchema,
   confirmPassword: z.string(),
   role: z.enum(['STUDENT', 'LECTURER', 'ADMIN']),
-  indexNumber: z.string().optional(),
+  studentId: z.string().optional(),
   staffId: z.string().optional()
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"]
 }).refine((data) => {
-  if (data.role === 'STUDENT' && !data.indexNumber) {
+  if (data.role === 'STUDENT' && !data.studentId) {
     return false
   }
   if (data.role === 'LECTURER' && !data.staffId) {
@@ -51,8 +51,8 @@ export const userRegistrationSchema = z.object({
   }
   return true
 }, {
-  message: "Index number is required for students, Staff ID is required for lecturers",
-  path: ["indexNumber"]
+  message: "Student ID is required for students, Staff ID is required for lecturers",
+  path: ["studentId"]
 })
 
 // Student profile validation

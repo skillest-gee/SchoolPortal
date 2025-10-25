@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 
 const loginSchema = z.object({
-  email: z.string().min(1, 'Email or Index Number is required'),
+  email: z.string().min(1, 'Email or Student ID is required'),
   password: z.string().min(1, 'Password is required'),
 })
 
@@ -15,21 +15,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = loginSchema.parse(body)
 
-    // Find user based on email/index number
+    // Find user based on email/student ID
     let user
-    if (validatedData.email.includes('/')) {
-      // Index number login for students
-      const indexNumber = validatedData.email.toUpperCase()
-      user = await prisma.user.findFirst({
-        where: {
-          indexNumber: indexNumber,
-          role: 'STUDENT',
-          isActive: true
-        },
-        include: {
-          studentProfile: true
-        }
+    if (validatedData.email.includes('STU')) {
+      // Student ID login for students
+      const studentId = validatedData.email.toUpperCase()
+      
+      // Find user by student profile
+      const studentProfile = await prisma.studentProfile.findUnique({
+        where: { studentId: studentId },
+        include: { user: true }
       })
+      
+      if (studentProfile) {
+        user = studentProfile.user
+      }
     } else {
       // Email login for admin/lecturer
       user = await prisma.user.findFirst({

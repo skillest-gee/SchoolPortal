@@ -15,7 +15,7 @@ import Loading from '@/components/ui/loading'
 interface Student {
   id: string
   name: string
-  indexNumber: string
+  studentId: string
   profileImage?: string
   profile: {
     firstName: string
@@ -28,7 +28,7 @@ interface Student {
 interface Conversation {
   userId: string
   name: string
-  indexNumber: string
+  studentId: string
   profileImage?: string
   profile: {
     firstName: string
@@ -55,7 +55,7 @@ interface Message {
   sender: {
     id: string
     name: string
-    indexNumber: string
+    studentId: string
   }
 }
 
@@ -159,7 +159,7 @@ export default function StudentMessages() {
       sender: {
         id: session?.user.id || '',
         name: session?.user.name || '',
-        indexNumber: session?.user.indexNumber || ''
+        studentId: session?.user.studentProfile?.studentId || ''
       }
     }
     
@@ -225,12 +225,12 @@ export default function StudentMessages() {
 
   const filteredConversations = conversations.filter(conv =>
     conv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.indexNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    conv.studentId.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const filteredStudents = students.filter(student =>
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.indexNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    student.studentId.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   if (status === 'loading' || loading) {
@@ -266,7 +266,7 @@ export default function StudentMessages() {
                   {view === 'chat' ? selectedUser?.name : 'Messages'}
                 </h1>
                 <p className="text-sm text-gray-600">
-                  {view === 'chat' ? selectedUser?.indexNumber : 'Chat with fellow students'}
+                  {view === 'chat' ? selectedUser?.studentId : 'Chat with fellow students'}
                 </p>
               </div>
             </div>
@@ -325,7 +325,7 @@ export default function StudentMessages() {
                         setSelectedUser({
                           id: conversation.userId,
                           name: conversation.name,
-                          indexNumber: conversation.indexNumber,
+                          studentId: conversation.studentId,
                           profile: conversation.profile
                         })
                         setView('chat')
@@ -350,7 +350,7 @@ export default function StudentMessages() {
                           )}
                         </div>
                         <p className="text-xs text-gray-500 truncate">
-                          {conversation.indexNumber}
+                          {conversation.studentId}
                         </p>
                         {conversation.lastMessage && (
                           <p className="text-xs text-gray-600 truncate mt-1">
@@ -391,7 +391,7 @@ export default function StudentMessages() {
                           {student.name}
                         </p>
                         <p className="text-xs text-gray-500 truncate">
-                          {student.indexNumber}
+                          {student.studentId}
                         </p>
                         <p className="text-xs text-gray-600 truncate">
                           {student.profile.programme} • {student.profile.yearOfStudy}

@@ -316,7 +316,7 @@ export async function PUT(
         const admissionEmail = generateAdmissionEmail({
           studentName: `${application.firstName} ${application.lastName}`,
           email: application.email,
-          indexNumber: generatedStudentId,
+          studentId: generatedStudentId,
           programme: application.programme.name,
           fees: fees,
           paymentInstructions: `
@@ -326,7 +326,7 @@ export async function PUT(
             • Cash Payment: Visit our finance office
             
             Payment Reference: ${generatedStudentId}
-            Please include your index number in all payment references.
+            Please include your student ID in all payment references.
             
             IMPORTANT: You must pay ALL fees ($${fees.total.toLocaleString()}) before you can access the student portal.
             Login credentials will only be provided after complete payment.
@@ -357,7 +357,7 @@ export async function PUT(
         const admissionEmail = generateAdmissionEmail({
           studentName: `${application.firstName} ${application.lastName}`,
           email: application.email,
-          indexNumber: generatedStudentId,
+          studentId: generatedStudentId,
           programme: application.programme.name,
           fees: programmeFees[application.programme.name as keyof typeof programmeFees] || programmeFees['BACHELOR OF SCIENCE (INFORMATION TECHNOLOGY)'],
           paymentInstructions: `

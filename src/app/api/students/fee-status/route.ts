@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
         student: {
           id: student.id,
           name: student.name,
-          indexNumber: student.indexNumber
+          studentId: student.studentProfile?.studentId,
         },
         fees: createdFees.map(fee => ({
           id: fee.id,

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       id: student.id,
       name: student.name,
       email: student.email,
-      indexNumber: student.indexNumber,
+      studentId: student.studentProfile?.studentId,
       profileImage: student.image,
       profile: {
         firstName: student.studentProfile?.firstName,

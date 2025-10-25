@@ -25,7 +25,7 @@ interface Student {
   id: string
   name: string
   email: string
-  indexNumber: string
+  studentId: string
   program: string
 }
 
@@ -262,7 +262,7 @@ export default function AdminFeeManagement() {
                   <SelectContent>
                     {students.map(student => (
                       <SelectItem key={student.id} value={student.id}>
-                        {student.name} ({student.indexNumber}) - {student.program}
+                        {student.name} ({student.studentId}) - {student.program}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -273,7 +273,7 @@ export default function AdminFeeManagement() {
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h3 className="font-semibold text-blue-900">Selected Student</h3>
                   <p className="text-blue-700">{selectedStudentData.name}</p>
-                  <p className="text-blue-600 text-sm">{selectedStudentData.indexNumber} - {selectedStudentData.program}</p>
+                  <p className="text-blue-600 text-sm">{selectedStudentData.studentId} - {selectedStudentData.program}</p>
                 </div>
               )}
 

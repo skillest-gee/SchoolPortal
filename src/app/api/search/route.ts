@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
               OR: [
                 { name: { contains: searchTerm } },
                 { email: { contains: searchTerm } },
-                { indexNumber: { contains: searchTerm } }
+                { studentProfile: { studentId: { contains: searchTerm } } }
               ]
             }
           ]
@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
         type: 'student',
         name: student.name,
         email: student.email,
-        indexNumber: student.indexNumber,
+        studentId: student.studentProfile?.studentId,
         programme: student.studentProfile?.programme,
         level: student.studentProfile?.level,
         url: `/students/${student.id}`

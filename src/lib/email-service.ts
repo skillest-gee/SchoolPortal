@@ -13,7 +13,7 @@ export interface EmailTemplate {
 export interface AdmissionEmailData {
   studentName: string
   email: string
-  indexNumber: string
+  studentId: string
   programme: string
   fees: {
     admission: number
@@ -30,7 +30,7 @@ export interface AdmissionEmailData {
 export interface LoginCredentialsEmailData {
   studentName: string
   email: string
-  indexNumber: string
+  studentId: string
   password: string
   hallOfResidence: string
   loginUrl: string
@@ -84,7 +84,7 @@ export function generateAdmissionEmail(data: AdmissionEmailData): EmailTemplate 
         <h3>📋 Your Admission Details:</h3>
         <ul>
           <li><strong>Name:</strong> ${data.studentName}</li>
-          <li><strong>Index Number:</strong> <span style="color: #2196F3; font-weight: bold;">${data.indexNumber}</span></li>
+          <li><strong>Student ID:</strong> <span style="color: #2196F3; font-weight: bold;">${data.studentId}</span></li>
           <li><strong>Programme:</strong> ${data.programme}</li>
           <li><strong>Academic Year:</strong> 2024/2025</li>
           <li><strong>Admission Date:</strong> ${currentDate}</li>
@@ -193,7 +193,7 @@ We are delighted to inform you that you have been ADMITTED to our institution fo
 
 Your Admission Details:
 - Name: ${data.studentName}
-- Index Number: ${data.indexNumber}
+- Student ID: ${data.studentId}
 - Programme: ${data.programme}
 - Academic Year: 2024/2025
 - Admission Date: ${currentDate}
@@ -249,7 +249,7 @@ export function generateLoginCredentialsEmail(data: LoginCredentialsEmailData): 
     day: 'numeric'
   })
 
-  const subject = `🔐 Your Student Portal Login Credentials - ${data.indexNumber}`
+  const subject = `🔐 Your Student Portal Login Credentials - ${data.studentId}`
   
   const html = `
     <!DOCTYPE html>
@@ -283,7 +283,7 @@ export function generateLoginCredentialsEmail(data: LoginCredentialsEmailData): 
         <div class="credentials">
           <h3>🎓 Your Login Credentials:</h3>
           <div class="credential-item">
-            <strong>Index Number:</strong> <span style="color: #2196F3; font-weight: bold; font-size: 18px;">${data.indexNumber}</span>
+            <strong>Student ID:</strong> <span style="color: #2196F3; font-weight: bold; font-size: 18px;">${data.studentId}</span>
           </div>
           <div class="credential-item">
             <strong>Password:</strong> <span style="color: #f44336; font-weight: bold; font-size: 16px;">${data.password}</span>
@@ -347,14 +347,14 @@ export function generateLoginCredentialsEmail(data: LoginCredentialsEmailData): 
   `
 
   const text = `
-Your Student Portal Login Credentials - ${data.indexNumber}
+Your Student Portal Login Credentials - ${data.studentId}
 
 Dear ${data.studentName},
 
 Thank you for your payment confirmation. Your admission fee has been processed successfully, and we are pleased to provide you with access to the student portal.
 
 Your Login Credentials:
-- Index Number: ${data.indexNumber}
+- Student ID: ${data.studentId}
 - Password: ${data.password}
 - Login URL: ${data.loginUrl}
 

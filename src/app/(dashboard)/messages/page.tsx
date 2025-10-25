@@ -16,7 +16,7 @@ type Message = {
   sender: {
     id: string
     name: string
-    indexNumber?: string
+    studentId?: string
   }
 }
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

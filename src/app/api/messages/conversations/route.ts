@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         conversations.set(otherUserId, {
           userId: otherUserId,
           name: otherUser.name,
-          indexNumber: otherUser.indexNumber,
+          studentId: otherUser.studentProfile?.studentId,
           profileImage: otherUser.image,
           profile: {
             firstName: otherUser.studentProfile?.firstName,

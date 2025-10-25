@@ -26,7 +26,7 @@ interface Student {
   id: string
   name: string
   email: string
-  indexNumber: string
+  studentId: string
   program: string
   hallOfResidence?: string
   hasCredentials: boolean
@@ -363,7 +363,7 @@ export default function AdminCredentialsManagement() {
                           <div>
                             <h3 className="font-semibold">{student.name}</h3>
                             <p className="text-sm text-gray-600">{student.email}</p>
-                            <p className="text-sm text-blue-600 font-medium">{student.indexNumber}</p>
+                            <p className="text-sm text-blue-600 font-medium">{student.studentId}</p>
                           </div>
                           <div className="text-right">
                             <Badge className={getPaymentStatusColor(student.paymentStatus)}>

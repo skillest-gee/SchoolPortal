@@ -13,7 +13,7 @@ interface Message {
   sender: {
     id: string
     name: string
-    indexNumber?: string
+    studentId?: string
   }
 }
 

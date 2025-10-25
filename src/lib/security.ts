@@ -143,11 +143,11 @@ export function isValidPhoneNumber(phone: string): boolean {
   return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''))
 }
 
-// Index number validation
-export function isValidIndexNumber(indexNumber: string): boolean {
+// Student ID validation
+export function isValidStudentId(studentId: string): boolean {
   // Format: STU2024001 or similar
-  const indexRegex = /^STU\d{4}\d{3}$/
-  return indexRegex.test(indexNumber)
+  const studentIdRegex = /^STU\d{4}\d{3}$/
+  return studentIdRegex.test(studentId)
 }
 
 // Session security

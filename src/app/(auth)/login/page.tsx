@@ -14,7 +14,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 const loginSchema = z.object({
-  email: z.string().min(1, 'Email or Index Number is required'),
+  email: z.string().min(1, 'Email or Student ID is required'),
   password: z.string().min(1, 'Password is required'),
 })
 
@@ -107,11 +107,11 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email or Index Number</Label>
+                <Label htmlFor="email">Email or Student ID</Label>
                 <Input
                   id="email"
                   type="text"
-                  placeholder="Enter your email or index number"
+                  placeholder="Enter your email or student ID"
                   {...register('email')}
                   className="h-11"
                 />
