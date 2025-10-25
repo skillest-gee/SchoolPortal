@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       name: user.name,
       role: user.role,
       image: user.image,
-      indexNumber: user.indexNumber,
+      studentId: (user as any).studentId,
       isActive: user.isActive,
       // lastLoginAt: user.lastLoginAt
     }
