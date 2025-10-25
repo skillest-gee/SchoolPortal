@@ -118,7 +118,7 @@ export default function ApplicationPage() {
 
       console.log('Uploading file:', file.name, 'Type:', type)
 
-      const response = await fetch('/api/upload-application', {
+      const response = await fetch('/api/upload-s3', {
         method: 'POST',
         body: formData
       })

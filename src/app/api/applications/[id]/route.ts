@@ -233,25 +233,9 @@ export async function PUT(
     // If approving, generate student ID and create user account
     let generatedStudentId = null
     if (validatedData.status === 'APPROVED') {
-      // Generate student ID in format: PS/ITC/21/0000
-      const currentYear = new Date().getFullYear()
-      const yearCode = String(currentYear).slice(-2) // Last 2 digits of year
-      
-      // Get programme code and department
-      const programmeCode = application.programme.code
-      const departmentCode = application.programme.department
-      
-      // Count existing students in this programme for this year
-      const existingStudents = await prisma.user.count({
-        where: {
-          indexNumber: {
-            startsWith: `${programmeCode}/${departmentCode}/${yearCode}/`
-          }
-        }
-      })
-      
-      const studentNumber = String(existingStudents + 1).padStart(4, '0')
-      generatedStudentId = `${programmeCode}/${departmentCode}/${yearCode}/${studentNumber}`
+      // Generate unique student ID in format STU2024004
+      const { generateSequentialStudentId } = await import('@/lib/student-mapping')
+      generatedStudentId = await generateSequentialStudentId('2024')
       
       // Create user account with secure password
       const bcrypt = await import('bcryptjs')
@@ -265,7 +249,6 @@ export async function PUT(
           email: application.email,
           passwordHash: defaultPassword,
           role: 'STUDENT',
-          indexNumber: generatedStudentId,
           isActive: true
         }
       })

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       const profile = await prisma.studentProfile.create({
         data: {
           userId: user.id,
-          studentId: `STU${Date.now()}`,
+          studentId: `STU${new Date().getFullYear()}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
           institutionalEmail: user.email,
           // Set default values that can be updated by admin
           title: 'MR.',
