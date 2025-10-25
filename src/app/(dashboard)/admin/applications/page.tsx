@@ -84,7 +84,7 @@ export default function AdminApplicationsPage() {
     }
   }, [session, selectedStatus, selectedProgramme])
 
-  const loadApplications = async () => {
+    const loadApplications = async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
