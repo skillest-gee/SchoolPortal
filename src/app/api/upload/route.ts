@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import { validateFileForUpload, generateUniqueFileName, sanitizeFileName } from '@/lib/file-validation'
-import { existsSync } from 'fs'
+import { prisma } from '@/lib/prisma'
 
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB default
-const UPLOAD_DIR = process.env.UPLOAD_DIR || './public/uploads'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,29 +26,36 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), UPLOAD_DIR.replace('./', ''))
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
+    // Convert file to base64 for storage in database
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+    const base64Data = buffer.toString('base64')
 
     // Generate secure unique filename
     const sanitizedName = sanitizeFileName(file.name)
     const fileName = generateUniqueFileName(sanitizedName, userId || 'anonymous')
-    const filePath = join(uploadsDir, fileName)
 
-    // Convert file to buffer and save
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
+    // Store file in database
+    const uploadedFile = await prisma.uploadedFile.create({
+      data: {
+        fileName: fileName,
+        originalName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        fileData: base64Data,
+        uploadedBy: userId || 'anonymous',
+        category: category
+      }
+    })
 
-    // Return the public URL
-    const publicUrl = `/uploads/${fileName}`
+    // Return the file ID and URL for retrieval
+    const fileUrl = `/api/files/${uploadedFile.id}`
 
     return NextResponse.json({
       success: true,
-      filePath: publicUrl,
-      fileName: fileName
+      filePath: fileUrl,
+      fileName: fileName,
+      fileId: uploadedFile.id
     })
 
   } catch (error) {

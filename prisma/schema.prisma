@@ -43,6 +43,21 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model UploadedFile {
+  id           String   @id @default(cuid())
+  fileName     String
+  originalName String
+  fileType     String
+  fileSize     Int
+  fileData     String   // Base64 encoded file data
+  uploadedBy   String
+  category     String   // 'profile', 'document', 'assignment'
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("uploaded_files")
+}
+
 model Programme {
   id           String        @id @default(cuid())
   code         String        @unique
