@@ -33,7 +33,7 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     // Convert to object format
     const settingsObject = settings.reduce((acc, setting) => {
       // Parse value based on expected type
-      let value = setting.value
+      let value: any = setting.value
       if (setting.key.includes('Credits') || setting.key.includes('Length') || setting.key.includes('Timeout') || setting.key.includes('Retention')) {
         value = parseInt(setting.value)
       } else if (setting.key.includes('Mode') || setting.key.includes('Open') || setting.key.includes('Notifications') || setting.key.includes('Auth') || setting.key.includes('Backup')) {
