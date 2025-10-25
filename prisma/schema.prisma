@@ -140,7 +140,6 @@ model User {
   passwordHash             String?
   role                     String               @default("STUDENT")
   isActive                 Boolean              @default(true)
-  indexNumber              String?              @unique
   createdAt                DateTime             @default(now())
   updatedAt                DateTime             @updatedAt
   accounts                 Account[]
