@@ -17,7 +17,6 @@ import {
   TrendingUp, 
   Users, 
   DollarSign, 
-  Library, 
   Award, 
   User, 
   Settings, 
@@ -58,10 +57,11 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
       return [
         ...baseItems,
         { name: 'Course Registration', href: '/student/course-registration', icon: BookOpen },
+        { name: 'Assignments', href: '/student/assignments', icon: FileText },
         { name: 'Grades', href: '/student/grades', icon: TrendingUp },
         { name: 'Attendance', href: '/student/attendance', icon: Users },
+        { name: 'Academic Calendar', href: '/student/calendar', icon: Clock },
         { name: 'Finance Portal', href: '/student/finance', icon: DollarSign },
-        { name: 'Library', href: '/library', icon: Library },
         { name: 'Self-Service', href: '/self-service', icon: Award },
       ]
         } else if (userRole === 'LECTURER') {
@@ -77,9 +77,13 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
         { name: 'User Management', href: '/admin/users', icon: Users },
         { name: 'Applications', href: '/admin/applications', icon: FileText },
         { name: 'Course Approval', href: '/admin/course-approval', icon: BookOpen },
+        { name: 'Course Management', href: '/admin/courses', icon: BookOpen },
+        { name: 'Registration Control', href: '/admin/registration', icon: Clock },
+        { name: 'Finance Management', href: '/admin/finances', icon: DollarSign },
         { name: 'Fee Management', href: '/admin/fees', icon: DollarSign },
         { name: 'Student Credentials', href: '/admin/credentials', icon: Key },
-        { name: 'Library Management', href: '/admin/library', icon: Library },
+        { name: 'Announcements', href: '/admin/announcements', icon: Megaphone },
+        { name: 'System Settings', href: '/admin/settings', icon: Settings },
       ]
     }
     

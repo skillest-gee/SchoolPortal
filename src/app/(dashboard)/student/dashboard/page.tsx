@@ -17,7 +17,6 @@ import {
   MessageSquare, 
   Megaphone, 
   Clock, 
-  Library,
   AlertCircle, 
   Award,
   CheckCircle,
@@ -362,14 +361,6 @@ export default function StudentDashboard() {
                 >
                   <DollarSign className="h-4 w-4 mr-2" />
                   Finances
-                </Button>
-                <Button 
-                  className="w-full justify-start" 
-                  variant="outline"
-                  onClick={() => router.push('/library')}
-                >
-                  <Library className="h-4 w-4 mr-2" />
-                  Digital Library
                 </Button>
               </CardContent>
             </Card>

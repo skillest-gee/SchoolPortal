@@ -19,7 +19,6 @@ import {
   MessageSquare, 
   Megaphone, 
   Clock, 
-  Library, 
   Award,
   Home,
   Menu,
@@ -111,10 +110,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       return [
         ...baseItems,
         { name: 'Course Registration', href: '/student/course-registration', icon: BookOpen },
+        { name: 'Assignments', href: '/student/assignments', icon: FileText },
         { name: 'Grades', href: '/student/grades', icon: TrendingUp },
         { name: 'Attendance', href: '/student/attendance', icon: Users },
+        { name: 'Academic Calendar', href: '/student/calendar', icon: Calendar },
         { name: 'Finances', href: '/student/finances', icon: DollarSign },
-        { name: 'Library', href: '/library', icon: Library },
         { name: 'Self-Service', href: '/self-service', icon: Award },
       ]
     } else if (userRole === 'LECTURER') {
@@ -129,8 +129,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { name: 'User Management', href: '/admin/users', icon: Users },
         { name: 'Applications', href: '/admin/applications', icon: FileText },
         { name: 'Course Approval', href: '/admin/course-approval', icon: BookOpen },
+        { name: 'Course Management', href: '/admin/courses', icon: BookOpen },
+        { name: 'Registration Control', href: '/admin/registration', icon: Calendar },
         { name: 'Finance Management', href: '/admin/finances', icon: DollarSign },
-        { name: 'Library Management', href: '/admin/library', icon: Library },
+        { name: 'Fee Management', href: '/admin/fees', icon: DollarSign },
+        { name: 'Student Credentials', href: '/admin/credentials', icon: Award },
+        { name: 'Announcements', href: '/admin/announcements', icon: Megaphone },
+        { name: 'System Settings', href: '/admin/settings', icon: Settings },
       ]
     }
     

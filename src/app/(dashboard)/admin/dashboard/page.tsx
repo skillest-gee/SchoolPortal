@@ -17,7 +17,6 @@ import {
   MessageSquare, 
   Megaphone, 
   Clock, 
-  Library,
   Target,
   BarChart3,
   ExternalLink,
@@ -329,14 +328,6 @@ export default function AdminDashboard() {
                 >
                   <Clock className="h-4 w-4 mr-2" />
                   Timetable Management
-                </Button>
-                <Button 
-                  className="w-full justify-start" 
-                  variant="outline"
-                  onClick={() => router.push('/library')}
-                >
-                  <Library className="h-4 w-4 mr-2" />
-                  Library Management
                 </Button>
                 <Button 
                   className="w-full justify-start" 
