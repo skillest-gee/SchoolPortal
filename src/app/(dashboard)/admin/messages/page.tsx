@@ -12,6 +12,13 @@ import Loading from '@/components/ui/loading'
 
 interface Message {
   id: string
+  senderId: string
+  recipientId: string
+  subject: string
+  content: string
+  isRead: boolean
+  createdAt: string
+  updatedAt: string
   sender: {
     id: string
     name: string
@@ -24,11 +31,6 @@ interface Message {
     email: string
     role: string
   }
-  subject: string
-  content: string
-  isRead: boolean
-  createdAt: string
-  updatedAt: string
 }
 
 export default function AdminMessagesPage() {
@@ -38,6 +40,7 @@ export default function AdminMessagesPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (status === 'loading') return
@@ -47,73 +50,32 @@ export default function AdminMessagesPage() {
       return
     }
 
-    // Simulate loading messages
-    setTimeout(() => {
-      setMessages([
-        {
-          id: '1',
-          sender: {
-            id: 'student1',
-            name: 'Jane Smith',
-            email: 'jane.smith@student.edu',
-            role: 'STUDENT'
-          },
-          recipient: {
-            id: session.user?.id || '',
-            name: session.user?.name || 'Admin',
-            email: session.user?.email || '',
-            role: 'ADMIN'
-          },
-          subject: 'Application Status Inquiry',
-          content: 'Hello Admin, I submitted my application last week and would like to know the current status. Could you please provide an update?',
-          isRead: false,
-          createdAt: '2024-01-15T09:15:00Z',
-          updatedAt: '2024-01-15T09:15:00Z'
-        },
-        {
-          id: '2',
-          sender: {
-            id: 'lecturer1',
-            name: 'Dr. Johnson',
-            email: 'johnson@school.edu',
-            role: 'LECTURER'
-          },
-          recipient: {
-            id: session.user?.id || '',
-            name: session.user?.name || 'Admin',
-            email: session.user?.email || '',
-            role: 'ADMIN'
-          },
-          subject: 'Course Approval Request',
-          content: 'Dear Admin, I have submitted a new course for approval. Please review and let me know if any additional information is needed.',
-          isRead: true,
-          createdAt: '2024-01-14T16:45:00Z',
-          updatedAt: '2024-01-14T16:45:00Z'
-        },
-        {
-          id: '3',
-          sender: {
-            id: 'student2',
-            name: 'Mike Wilson',
-            email: 'mike.wilson@student.edu',
-            role: 'STUDENT'
-          },
-          recipient: {
-            id: session.user?.id || '',
-            name: session.user?.name || 'Admin',
-            email: session.user?.email || '',
-            role: 'ADMIN'
-          },
-          subject: 'Fee Payment Issue',
-          content: 'Hi Admin, I am having trouble with the fee payment system. The payment is not going through. Could you please help me resolve this issue?',
-          isRead: false,
-          createdAt: '2024-01-13T11:30:00Z',
-          updatedAt: '2024-01-13T11:30:00Z'
-        }
-      ])
-      setLoading(false)
-    }, 1000)
+    loadMessages()
   }, [session, status, router])
+
+  const loadMessages = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      
+      const response = await fetch('/api/messages')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setMessages(data.data || [])
+        } else {
+          setError('Failed to load messages')
+        }
+      } else {
+        setError('Failed to load messages')
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error)
+      setError('Failed to load messages')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredMessages = messages.filter(message =>
     message.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -130,6 +92,21 @@ export default function AdminMessagesPage() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const markAsRead = async (messageId: string) => {
+    try {
+      const response = await fetch(`/api/messages/${messageId}/read`, {
+        method: 'PATCH'
+      })
+      if (response.ok) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId ? { ...msg, isRead: true } : msg
+        ))
+      }
+    } catch (error) {
+      console.error('Error marking message as read:', error)
+    }
   }
 
   const getRoleColor = (role: string) => {
@@ -218,7 +195,14 @@ export default function AdminMessagesPage() {
 
                 {/* Messages */}
                 <div className="space-y-2">
-                  {filteredMessages.length === 0 ? (
+                  {error ? (
+                    <div className="text-center py-4">
+                      <p className="text-red-500 mb-2">{error}</p>
+                      <Button size="sm" onClick={loadMessages}>
+                        Retry
+                      </Button>
+                    </div>
+                  ) : filteredMessages.length === 0 ? (
                     <p className="text-gray-500 text-center py-4">No messages found</p>
                   ) : (
                     filteredMessages.map((message) => (
@@ -231,7 +215,10 @@ export default function AdminMessagesPage() {
                             ? 'bg-white hover:bg-gray-50'
                             : 'bg-blue-50 hover:bg-blue-100'
                         }`}
-                        onClick={() => setSelectedMessage(message)}
+                        onClick={() => {
+                          setSelectedMessage(message)
+                          if (!message.isRead) markAsRead(message.id)
+                        }}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
