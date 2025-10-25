@@ -39,52 +39,47 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // First, try the direct API login
-      const loginResponse = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-        }),
+      // Use NextAuth signIn directly for better session management
+      const result = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false,
       })
 
-      const loginResult = await loginResponse.json()
-
-      if (loginResult.success) {
-        // If API login successful, use NextAuth signIn to establish session
-        const result = await signIn('credentials', {
-          email: data.email,
-          password: data.password,
-          redirect: false,
-        })
-
-        if (result?.ok) {
-          // Wait for session to be established
+      if (result?.ok) {
+        // Wait for session to be established
+        let session = await getSession()
+        let attempts = 0
+        const maxAttempts = 5
+        
+        // Retry getting session if it's not immediately available
+        while (!session?.user?.role && attempts < maxAttempts) {
           await new Promise(resolve => setTimeout(resolve, 200))
-          
-          // Force redirect based on user role
-          switch (loginResult.user.role) {
+          session = await getSession()
+          attempts++
+        }
+        
+        if (session?.user?.role) {
+          // Use router.push for better client-side navigation
+          switch (session.user.role) {
             case 'ADMIN':
-              window.location.href = '/admin/dashboard'
+              router.push('/admin/dashboard')
               break
             case 'LECTURER':
-              window.location.href = '/lecturer/dashboard'
+              router.push('/lecturer/dashboard')
               break
             case 'STUDENT':
-              window.location.href = '/student/dashboard'
+              router.push('/student/dashboard')
               break
             default:
-              window.location.href = '/dashboard'
+              router.push('/dashboard')
           }
         } else {
-          setError('Session establishment failed. Please try again.')
+          setError('Session not established. Please refresh the page.')
           setIsLoading(false)
         }
       } else {
-        setError(loginResult.error || 'Invalid credentials')
+        setError(result?.error || 'Invalid credentials')
         setIsLoading(false)
       }
     } catch (error) {

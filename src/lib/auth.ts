@@ -155,7 +155,7 @@ export const authOptions: NextAuthOptions = {
         session.user.indexNumber = token.indexNumber as string
         session.user.image = token.image as string
       }
-      console.log('🔐 Session callback:', { session, token })
+      if (isDev) console.log('🔐 Session callback:', { session, token })
       return session
     },
     async redirect({ url, baseUrl }) {
@@ -164,6 +164,10 @@ export const authOptions: NextAuthOptions = {
       // Allows callback URLs on the same origin
       else if (new URL(url).origin === baseUrl) return url
       return baseUrl
+    },
+    async signIn({ user, account, profile }) {
+      if (isDev) console.log('🔐 SignIn callback:', { user, account })
+      return true
     }
   },
   pages: {
