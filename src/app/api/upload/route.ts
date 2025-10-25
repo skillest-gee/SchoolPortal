@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
 
     // Generate secure unique filename
     const sanitizedName = sanitizeFileName(file.name)
-    const fileName = generateUniqueFileName(sanitizedName, userId || 'anonymous')
+    const uploadUserId = userId || 'anonymous'
+    const fileName = generateUniqueFileName(sanitizedName, uploadUserId)
 
     // Store file in database
     const uploadedFile = await prisma.uploadedFile.create({
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
         fileType: file.type,
         fileSize: file.size,
         fileData: base64Data,
-        uploadedBy: userId || 'anonymous',
+        uploadedBy: uploadUserId,
         category: category
       }
     })
