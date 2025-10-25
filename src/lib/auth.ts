@@ -109,7 +109,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             role: user.role,
             image: user.image,
-            indexNumber: user.indexNumber,
+            studentId: user.studentId,
           }
         } catch (error) {
           console.error('❌ Auth error')
@@ -139,7 +139,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = user.role
         token.id = user.id
-        token.indexNumber = user.indexNumber
+        token.studentId = user.studentId
         token.image = user.image
       }
       
@@ -156,7 +156,7 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.id as string
         session.user.role = token.role as UserRole
-        session.user.indexNumber = token.indexNumber as string
+        session.user.studentId = token.studentId as string
         session.user.image = token.image as string
       }
       if (isDev) console.log('🔐 Session callback:', { session, token })
