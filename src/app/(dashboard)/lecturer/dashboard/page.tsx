@@ -26,11 +26,13 @@ import Loading from '@/components/ui/loading'
 
 interface RecentActivity {
   id: string
-  type: 'grading' | 'assignment' | 'course' | 'announcement'
   title: string
-  description: string
-  date: string
-  status: 'completed' | 'pending' | 'in-progress'
+  course: {
+    code: string
+    title: string
+  }
+  submissionsCount: number
+  createdAt: string
 }
 
 interface CourseStats {
@@ -101,23 +103,12 @@ export default function LecturerDashboard() {
     return null
   }
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'grading': return FileText
-      case 'assignment': return Plus
-      case 'course': return BookOpen
-      case 'announcement': return Megaphone
-      default: return Clock
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-500'
-      case 'pending': return 'bg-yellow-500'
-      case 'in-progress': return 'bg-blue-500'
-      default: return 'bg-gray-500'
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
   }
 
   return (
@@ -317,20 +308,22 @@ export default function LecturerDashboard() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  {recentActivity.map((activity) => {
-                    const Icon = getActivityIcon(activity.type)
-                    return (
-                      <div key={activity.id} className="flex items-start space-x-3">
-                        <div className={`w-2 h-2 rounded-full mt-2 ${getStatusColor(activity.status)}`}></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                          <p className="text-xs text-gray-500 truncate">{activity.description}</p>
-                          <p className="text-xs text-gray-400">{activity.date}</p>
-                        </div>
-                        <Icon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-1" />
+                  {recentActivity.map((activity) => (
+                    <div key={activity.id} className="flex items-start space-x-3">
+                      <div className="w-2 h-2 rounded-full mt-2 bg-blue-500"></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                        <p className="text-xs text-gray-500 truncate">{activity.course.code} - {activity.course.title}</p>
+                        <p className="text-xs text-gray-400">{formatDate(activity.createdAt)}</p>
                       </div>
-                    )
-                  })}
+                      <FileText className="h-4 w-4 text-gray-400 flex-shrink-0 mt-1" />
+                    </div>
+                  ))}
+                  {recentActivity.length === 0 && (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500">No recent activity</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -64,12 +64,13 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
         { name: 'Library', href: '/library', icon: Library },
         { name: 'Self-Service', href: '/self-service', icon: Award },
       ]
-    } else if (userRole === 'LECTURER') {
-      return [
-        ...baseItems,
-        { name: 'Grade Management', href: '/lecturer/grades', icon: TrendingUp },
-        { name: 'Student Management', href: '/lecturer/students', icon: Users },
-      ]
+        } else if (userRole === 'LECTURER') {
+          return [
+            ...baseItems,
+            { name: 'Assignments', href: '/lecturer/assignments', icon: FileText },
+            { name: 'Grade Management', href: '/lecturer/grades', icon: TrendingUp },
+            { name: 'Student Management', href: '/lecturer/students', icon: Users },
+          ]
     } else if (userRole === 'ADMIN') {
       return [
         ...baseItems,

@@ -26,7 +26,7 @@ interface Student {
   studentId: string
   program: string
   yearOfStudy: string
-  averageGrade: string
+  averageGrade: number | null
   totalCourses: number
   courses: Array<{
     id: string
@@ -42,7 +42,7 @@ interface Student {
     id: string
     courseCode: string
     courseTitle: string
-    grade: number
+    grade: number | null
     semester: string
     academicYear: string
   }>
@@ -126,11 +126,12 @@ export default function LecturerStudentsPage() {
     }
   }
 
-  const getGradeColor = (grade: string) => {
-    const numGrade = parseFloat(grade)
-    if (isNaN(numGrade)) return 'text-gray-600'
-    if (numGrade >= 3.7) return 'text-green-600'
-    if (numGrade >= 3.0) return 'text-yellow-600'
+  const getGradeColor = (grade: number | null) => {
+    if (grade === null) return 'text-gray-600'
+    if (grade >= 80) return 'text-green-600'
+    if (grade >= 70) return 'text-blue-600'
+    if (grade >= 60) return 'text-yellow-600'
+    if (grade >= 50) return 'text-orange-600'
     return 'text-red-600'
   }
 
@@ -177,8 +178,8 @@ export default function LecturerStudentsPage() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Average Grade</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {students.length > 0 ? 
-                      (students.reduce((sum, student) => sum + parseFloat(student.averageGrade || '0'), 0) / students.length).toFixed(1) 
+                    {students.filter(s => s.averageGrade !== null).length > 0 ? 
+                      (students.filter(s => s.averageGrade !== null).reduce((sum, student) => sum + (student.averageGrade || 0), 0) / students.filter(s => s.averageGrade !== null).length).toFixed(1) 
                       : 'N/A'
                     }
                   </p>
@@ -303,7 +304,7 @@ export default function LecturerStudentsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <span className={`font-medium ${getGradeColor(student.averageGrade)}`}>
-                          {student.averageGrade}
+                          {student.averageGrade !== null ? student.averageGrade.toFixed(1) : 'N/A'}
                         </span>
                       </td>
                       <td className="py-3 px-4">

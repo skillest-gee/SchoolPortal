@@ -75,7 +75,7 @@ export default function CreateAssignmentPage() {
       const data = await response.json()
 
       if (data.success) {
-        const foundCourse = data.data.find((c: any) => c.id === courseId)
+        const foundCourse = data.data.courses.find((c: any) => c.id === courseId)
         if (foundCourse) {
           setCourse(foundCourse)
         } else {
@@ -96,13 +96,14 @@ export default function CreateAssignmentPage() {
     setSuccess('')
 
     try {
-      const response = await fetch(`/api/courses/${courseId}/assignments`, {
+      const response = await fetch(`/api/lecturer/assignments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...data,
+          courseId: courseId,
           fileUrl: uploadedFileUrl || undefined
         }),
       })

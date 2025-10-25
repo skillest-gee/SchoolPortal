@@ -237,17 +237,17 @@ export default function LecturerCoursesPage() {
                     <Button 
                       size="sm" 
                       className="flex-1"
-                      onClick={() => router.push(`/lecturer/courses/${course.id}`)}
+                      onClick={() => router.push(`/lecturer/assignments?course=${course.code}`)}
                     >
                       <Eye className="h-4 w-4 mr-2" />
-                      View Details
+                      Assignments
                     </Button>
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => router.push(`/lecturer/courses/${course.id}/edit`)}
+                      onClick={() => router.push(`/lecturer/courses/${course.id}/attendance`)}
                     >
-                      <Edit className="h-4 w-4" />
+                      <Users className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

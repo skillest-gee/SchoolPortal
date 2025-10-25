@@ -23,9 +23,10 @@ interface Course {
   id: string
   code: string
   title: string
-  enrolledStudents: number
-  assignments: number
-  averageGrade: string
+  department: string
+  level: string
+  semester: string
+  academicYear: string
 }
 
 interface StudentGrade {
@@ -33,11 +34,15 @@ interface StudentGrade {
   studentId: string
   studentName: string
   courseCode: string
-  assignmentTitle: string
-  grade: string
-  maxPoints: number
-  submittedAt: string
-  status: 'graded' | 'pending' | 'not-submitted'
+  courseTitle: string
+  grade: number | null
+  semester: string
+  academicYear: string
+  studentProfile: {
+    studentId: string
+    firstName: string
+    lastName: string
+  }
 }
 
 export default function LecturerGradesPage() {
@@ -62,87 +67,24 @@ export default function LecturerGradesPage() {
     const loadGradesData = async () => {
       setLoading(true)
       
-      // Mock courses data
-      const mockCourses: Course[] = [
-        {
-          id: '1',
-          code: 'CS101',
-          title: 'Introduction to Computer Science',
-          enrolledStudents: 45,
-          assignments: 5,
-          averageGrade: 'B+'
-        },
-        {
-          id: '2',
-          code: 'CS201',
-          title: 'Data Structures and Algorithms',
-          enrolledStudents: 32,
-          assignments: 4,
-          averageGrade: 'A-'
-        },
-        {
-          id: '3',
-          code: 'CS301',
-          title: 'Software Engineering',
-          enrolledStudents: 28,
-          assignments: 3,
-          averageGrade: 'B'
+      try {
+        const response = await fetch('/api/lecturer/grades')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setCourses(data.data.courses)
+            setStudentGrades(data.data.academicRecords)
+          } else {
+            console.error('Failed to load grades:', data.error)
+          }
+        } else {
+          console.error('Failed to fetch grades')
         }
-      ]
-
-      // Mock student grades data
-      const mockGrades: StudentGrade[] = [
-        {
-          id: '1',
-          studentId: 'STU001',
-          studentName: 'John Smith',
-          courseCode: 'CS101',
-          assignmentTitle: 'Python Basics Assignment',
-          grade: 'A',
-          maxPoints: 100,
-          submittedAt: '2024-01-15',
-          status: 'graded'
-        },
-        {
-          id: '2',
-          studentId: 'STU002',
-          studentName: 'Sarah Johnson',
-          courseCode: 'CS101',
-          assignmentTitle: 'Python Basics Assignment',
-          grade: 'B+',
-          maxPoints: 100,
-          submittedAt: '2024-01-15',
-          status: 'graded'
-        },
-        {
-          id: '3',
-          studentId: 'STU003',
-          studentName: 'Michael Brown',
-          courseCode: 'CS201',
-          assignmentTitle: 'Data Structures Project',
-          grade: '',
-          maxPoints: 100,
-          submittedAt: '2024-01-16',
-          status: 'pending'
-        },
-        {
-          id: '4',
-          studentId: 'STU004',
-          studentName: 'Emily Davis',
-          courseCode: 'CS101',
-          assignmentTitle: 'Python Basics Assignment',
-          grade: '',
-          maxPoints: 100,
-          submittedAt: '',
-          status: 'not-submitted'
-        }
-      ]
-
-      setTimeout(() => {
-        setCourses(mockCourses)
-        setStudentGrades(mockGrades)
+      } catch (error) {
+        console.error('Error loading grades:', error)
+      } finally {
         setLoading(false)
-      }, 1000)
+      }
     }
 
     if (session?.user.role === 'LECTURER') {
@@ -165,29 +107,22 @@ export default function LecturerGradesPage() {
   const filteredGrades = studentGrades.filter(grade => {
     const matchesCourse = selectedCourse === 'all' || grade.courseCode === selectedCourse
     const matchesSearch = grade.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         grade.assignmentTitle.toLowerCase().includes(searchTerm.toLowerCase())
+                         grade.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesCourse && matchesSearch
   })
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'graded': return 'bg-green-100 text-green-800 border-green-200'
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'not-submitted': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
+  const getGradeColor = (grade: number | null) => {
+    if (grade === null) return 'text-gray-400'
+    if (grade >= 80) return 'text-green-600'
+    if (grade >= 70) return 'text-blue-600'
+    if (grade >= 60) return 'text-yellow-600'
+    if (grade >= 50) return 'text-orange-600'
+    return 'text-red-600'
   }
 
-  const getGradeColor = (grade: string) => {
-    if (!grade) return 'text-gray-400'
-    switch (grade) {
-      case 'A': case 'A+': return 'text-green-600'
-      case 'A-': case 'B+': return 'text-blue-600'
-      case 'B': case 'B-': return 'text-yellow-600'
-      case 'C+': case 'C': return 'text-orange-600'
-      case 'C-': case 'D': case 'F': return 'text-red-600'
-      default: return 'text-gray-600'
-    }
+  const getGradeStatus = (grade: number | null) => {
+    if (grade === null) return { status: 'Not Graded', color: 'bg-gray-100 text-gray-800 border-gray-200' }
+    return { status: 'Graded', color: 'bg-green-100 text-green-800 border-green-200' }
   }
 
   const handleGradeEdit = (gradeId: string, newGrade: string) => {
@@ -201,12 +136,31 @@ export default function LecturerGradesPage() {
     const newGrade = editingGrades[gradeId]
     if (!newGrade) return
 
-    // Here you would typically make an API call to save the grade
-    setStudentGrades(prev => prev.map(grade => 
-      grade.id === gradeId 
-        ? { ...grade, grade: newGrade, status: 'graded' as const }
-        : grade
-    ))
+    try {
+      const response = await fetch('/api/lecturer/grades', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: studentGrades.find(g => g.id === gradeId)?.studentId,
+          courseId: studentGrades.find(g => g.id === gradeId)?.courseCode,
+          grade: parseFloat(newGrade),
+          semester: studentGrades.find(g => g.id === gradeId)?.semester,
+          academicYear: studentGrades.find(g => g.id === gradeId)?.academicYear
+        }),
+      })
+
+      if (response.ok) {
+        setStudentGrades(prev => prev.map(grade => 
+          grade.id === gradeId 
+            ? { ...grade, grade: parseFloat(newGrade) }
+            : grade
+        ))
+      }
+    } catch (error) {
+      console.error('Error saving grade:', error)
+    }
 
     // Clear the editing state
     setEditingGrades(prev => {
@@ -263,7 +217,7 @@ export default function LecturerGradesPage() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Students</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {courses.reduce((sum, course) => sum + course.enrolledStudents, 0)}
+                    {studentGrades.length}
                   </p>
                 </div>
               </div>
@@ -279,7 +233,7 @@ export default function LecturerGradesPage() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Pending Grades</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {studentGrades.filter(grade => grade.status === 'pending').length}
+                    {studentGrades.filter(grade => grade.grade === null).length}
                   </p>
                 </div>
               </div>
@@ -294,7 +248,12 @@ export default function LecturerGradesPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Avg. Grade</p>
-                  <p className="text-2xl font-bold text-gray-900">B+</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {studentGrades.filter(g => g.grade !== null).length > 0 
+                      ? (studentGrades.filter(g => g.grade !== null).reduce((sum, g) => sum + (g.grade || 0), 0) / studentGrades.filter(g => g.grade !== null).length).toFixed(1)
+                      : 'N/A'
+                    }
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -309,7 +268,7 @@ export default function LecturerGradesPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search by student name or assignment..."
+                  placeholder="Search by student name or course..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent w-full"
@@ -349,10 +308,9 @@ export default function LecturerGradesPage() {
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Student</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Course</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Assignment</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Grade</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Submitted</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">Semester</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
                   </tr>
                 </thead>
@@ -362,23 +320,25 @@ export default function LecturerGradesPage() {
                       <td className="py-3 px-4">
                         <div>
                           <div className="font-medium text-gray-900">{grade.studentName}</div>
-                          <div className="text-sm text-gray-500">ID: {grade.studentId}</div>
+                          <div className="text-sm text-gray-500">ID: {grade.studentProfile.studentId}</div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="text-gray-700">{grade.courseCode}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-gray-700">{grade.assignmentTitle}</span>
+                        <div>
+                          <div className="text-gray-700 font-medium">{grade.courseCode}</div>
+                          <div className="text-sm text-gray-500">{grade.courseTitle}</div>
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         {editingGrades[grade.id] !== undefined ? (
                           <div className="flex items-center space-x-2">
                             <input
-                              type="text"
+                              type="number"
+                              min="0"
+                              max="100"
                               value={editingGrades[grade.id]}
                               onChange={(e) => handleGradeEdit(grade.id, e.target.value)}
-                              className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                              className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                               placeholder="Grade"
                             />
                             <Button
@@ -391,23 +351,23 @@ export default function LecturerGradesPage() {
                           </div>
                         ) : (
                           <span className={`font-medium ${getGradeColor(grade.grade)}`}>
-                            {grade.grade || 'Not graded'}
+                            {grade.grade !== null ? grade.grade : 'Not graded'}
                           </span>
                         )}
                       </td>
                       <td className="py-3 px-4">
-                        <Badge className={getStatusColor(grade.status)}>
-                          {grade.status.replace('-', ' ')}
+                        <Badge className={getGradeStatus(grade.grade).color}>
+                          {getGradeStatus(grade.grade).status}
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
                         <span className="text-gray-500 text-sm">
-                          {grade.submittedAt || 'Not submitted'}
+                          {grade.semester} {grade.academicYear}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
-                          {grade.status === 'pending' && !editingGrades[grade.id] && (
+                          {grade.grade === null && !editingGrades[grade.id] && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -416,13 +376,6 @@ export default function LecturerGradesPage() {
                               <Edit className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => router.push(`/lecturer/grades/${grade.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
                         </div>
                       </td>
                     </tr>
