@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Convert file to base64 for storage in database
+    // Convert file to base64 for storage in database (temporary until S3 is set up)
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     const base64Data = buffer.toString('base64')
@@ -50,14 +50,14 @@ export async function POST(request: NextRequest) {
     const uploadUserId = userId || 'anonymous'
     const fileName = generateUniqueFileName(sanitizedName, uploadUserId)
 
-    // Store file in database
+    // Store file in database (temporary solution)
     const uploadedFile = await prisma.uploadedFile.create({
       data: {
         fileName: fileName,
         originalName: file.name,
         fileType: file.type,
         fileSize: file.size,
-        fileData: base64Data,
+        fileData: base64Data, // Temporary base64 storage
         uploadedBy: uploadUserId,
         category: category
       }

@@ -49,9 +49,10 @@ model UploadedFile {
   originalName String
   fileType     String
   fileSize     Int
-  s3Key        String   // S3 object key instead of base64 data
+  s3Key        String?  // S3 object key instead of base64 data
   s3Bucket     String?  // S3 bucket name
   fileUrl      String?  // Cached signed URL
+  fileData     String?  // Temporary base64 data (remove when S3 is ready)
   uploadedBy   String
   category     String   // 'profile', 'document', 'assignment'
   createdAt    DateTime @default(now())
