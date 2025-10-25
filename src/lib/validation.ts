@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { isValidEmail, isValidPhoneNumber, isValidIndexNumber } from './security'
+import { isValidEmail, isValidPhoneNumber, isValidStudentId } from './security'
 
 // Common validation schemas
 export const emailSchema = z.string()
