@@ -159,7 +159,7 @@ export default function StudentMessages() {
       sender: {
         id: session?.user.id || '',
         name: session?.user.name || '',
-        studentId: session?.user.studentProfile?.studentId || ''
+        studentId: session?.user.studentId || ''
       }
     }
     
