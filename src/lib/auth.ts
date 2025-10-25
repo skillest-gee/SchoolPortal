@@ -55,6 +55,8 @@ export const authOptions: NextAuthOptions = {
             
             if (studentProfile) {
               user = studentProfile.user
+              // Add studentId to user object for session
+              user.studentId = studentProfile.studentId
             }
           } else {
             // For non-students (admin, lecturer), use email (case insensitive)
