@@ -118,7 +118,7 @@ export default function CreateAssignmentPage() {
       
       // Redirect to assignments list after a short delay
       setTimeout(() => {
-        router.push(`/lecturer/courses/${courseId}/assignments`)
+        router.push(`/lecturer/assignments`)
       }, 2000)
 
     } catch (error) {
