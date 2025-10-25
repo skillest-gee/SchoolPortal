@@ -19,8 +19,7 @@ import {
   Calendar,
   ExternalLink
 } from 'lucide-react'
-import Loading from '@/components/ui/loading'
-import { ErrorAlert } from '@/components/ui/loading'
+import Loading, { ErrorAlert } from '@/components/ui/loading'
 
 interface Notification {
   id: string
@@ -67,8 +66,8 @@ export default function NotificationsPage() {
 
       const data = await response.json()
       if (data.success) {
-        setNotifications(data.data.notifications)
-        setUnreadCount(data.data.unreadCount)
+        setNotifications(data.data)
+        setUnreadCount(data.unreadCount)
       } else {
         throw new Error(data.error || 'Failed to fetch notifications')
       }
