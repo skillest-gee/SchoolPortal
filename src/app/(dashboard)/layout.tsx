@@ -119,13 +119,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       ]
     } else if (userRole === 'LECTURER') {
       return [
-        ...baseItems,
+        { name: 'Dashboard', href: '/lecturer/dashboard', icon: Home },
+        { name: 'Courses', href: '/lecturer/courses', icon: BookOpen },
+        { name: 'Assignments', href: '/lecturer/assignments', icon: FileText },
         { name: 'Grade Management', href: '/lecturer/grades', icon: TrendingUp },
         { name: 'Student Management', href: '/lecturer/students', icon: Users },
+        { name: 'Class Timetable', href: '/lecturer/timetable', icon: Clock },
+        { name: 'Messages', href: '/lecturer/messages', icon: MessageSquare },
+        { name: 'Notifications', href: '/notifications', icon: Bell },
+        { name: 'Announcements', href: '/announcements', icon: Megaphone },
       ]
     } else if (userRole === 'ADMIN') {
       return [
-        ...baseItems,
+        { name: 'Dashboard', href: '/admin/dashboard', icon: Home },
         { name: 'User Management', href: '/admin/users', icon: Users },
         { name: 'Applications', href: '/admin/applications', icon: FileText },
         { name: 'Course Approval', href: '/admin/course-approval', icon: BookOpen },
@@ -135,6 +141,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { name: 'Fee Management', href: '/admin/fees', icon: DollarSign },
         { name: 'Student Credentials', href: '/admin/credentials', icon: Award },
         { name: 'Announcements', href: '/admin/announcements', icon: Megaphone },
+        { name: 'Academic Calendar', href: '/admin/calendar', icon: Calendar },
+        { name: 'Messages', href: '/admin/messages', icon: MessageSquare },
+        { name: 'Notifications', href: '/notifications', icon: Bell },
         { name: 'System Settings', href: '/admin/settings', icon: Settings },
       ]
     }

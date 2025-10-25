@@ -678,3 +678,17 @@ model Timetable {
 // @@index([studentId])
 // @@index([feeId])
 // @@index([status])
+
+model AcademicEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  date        DateTime
+  type        String   // ACADEMIC, ADMINISTRATIVE, EXAM, HOLIDAY, EVENT
+  priority    String   // HIGH, MEDIUM, LOW
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("academic_events")
+}
