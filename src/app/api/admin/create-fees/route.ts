@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
     createdFees.push(libraryFee)
 
     // 5. LABORATORY FEE (if applicable)
-    if (fees.laboratory) {
+    if ('laboratory' in fees && fees.laboratory) {
       const laboratoryFee = await prisma.fee.create({
         data: {
           studentId: studentId,
