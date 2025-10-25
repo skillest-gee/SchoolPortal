@@ -1,8 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateFileForUpload, generateUniqueFileName, sanitizeFileName } from '@/lib/file-validation'
 import { prisma } from '@/lib/prisma'
 
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB default
+
+// Simple file validation - just check size and basic file existence
+function simpleFileValidation(file: File): { isValid: boolean; errors: string[] } {
+  const errors: string[] = []
+
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    errors.push(`File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`)
+  }
+
+  // Check file name
+  if (!file.name || file.name.trim().length === 0) {
+    errors.push('File name is required')
+  }
+
+  // Basic file type check - allow most common types
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+    'image/jpeg',
+    'image/jpg', 
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'application/octet-stream', // Generic binary
+    'application/zip',
+    'application/x-zip-compressed'
+  ]
+
+  if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+    errors.push('File type not supported. Please upload PDF, DOC, DOCX, TXT, or image files.')
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +50,7 @@ export async function POST(request: NextRequest) {
     const type = formData.get('type') as string
     const userId = formData.get('userId') as string
 
-    console.log('Upload request received:', {
+    console.log('Simple upload request received:', {
       fileName: file?.name,
       fileSize: file?.size,
       fileType: file?.type,
@@ -23,14 +62,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
     }
 
-    // Validate file based on type
-    const category = type === 'profile' ? 'profile' : type === 'assignment' ? 'assignment' : 'document'
-    const validation = validateFileForUpload(file, category)
+    // Simple validation
+    const validation = simpleFileValidation(file)
     
-    console.log('File validation result:', {
+    console.log('Simple file validation result:', {
       isValid: validation.isValid,
-      errors: validation.errors,
-      category
+      errors: validation.errors
     })
     
     if (!validation.isValid) {
@@ -45,10 +82,11 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes)
     const base64Data = buffer.toString('base64')
 
-    // Generate secure unique filename
-    const sanitizedName = sanitizeFileName(file.name)
+    // Generate simple filename
+    const timestamp = Date.now()
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const uploadUserId = userId || 'anonymous'
-    const fileName = generateUniqueFileName(sanitizedName, uploadUserId)
+    const fileName = `${sanitizedName}_${uploadUserId}_${timestamp}`
 
     // Store file in database
     const uploadedFile = await prisma.uploadedFile.create({
@@ -59,12 +97,18 @@ export async function POST(request: NextRequest) {
         fileSize: file.size,
         fileData: base64Data,
         uploadedBy: uploadUserId,
-        category: category
+        category: type || 'document'
       }
     })
 
     // Return the file ID and URL for retrieval
     const fileUrl = `/api/files/${uploadedFile.id}`
+
+    console.log('File uploaded successfully:', {
+      fileId: uploadedFile.id,
+      fileName: fileName,
+      fileUrl: fileUrl
+    })
 
     return NextResponse.json({
       success: true,

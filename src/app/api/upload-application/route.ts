@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateFileForUpload, generateUniqueFileName, sanitizeFileName } from '@/lib/file-validation'
 import { prisma } from '@/lib/prisma'
 
-const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB default
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB for applications
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,32 +10,21 @@ export async function POST(request: NextRequest) {
     const type = formData.get('type') as string
     const userId = formData.get('userId') as string
 
-    console.log('Upload request received:', {
+    console.log('Application upload request:', {
       fileName: file?.name,
       fileSize: file?.size,
       fileType: file?.type,
-      type,
-      userId: userId || 'anonymous'
+      type
     })
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
     }
 
-    // Validate file based on type
-    const category = type === 'profile' ? 'profile' : type === 'assignment' ? 'assignment' : 'document'
-    const validation = validateFileForUpload(file, category)
-    
-    console.log('File validation result:', {
-      isValid: validation.isValid,
-      errors: validation.errors,
-      category
-    })
-    
-    if (!validation.isValid) {
+    // Only check file size - no type restrictions for applications
+    if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json({ 
-        error: 'File validation failed', 
-        details: validation.errors 
+        error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB` 
       }, { status: 400 })
     }
 
@@ -45,26 +33,31 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes)
     const base64Data = buffer.toString('base64')
 
-    // Generate secure unique filename
-    const sanitizedName = sanitizeFileName(file.name)
+    // Generate filename
+    const timestamp = Date.now()
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const uploadUserId = userId || 'anonymous'
-    const fileName = generateUniqueFileName(sanitizedName, uploadUserId)
+    const fileName = `${sanitizedName}_${uploadUserId}_${timestamp}`
 
     // Store file in database
     const uploadedFile = await prisma.uploadedFile.create({
       data: {
         fileName: fileName,
         originalName: file.name,
-        fileType: file.type,
+        fileType: file.type || 'application/octet-stream',
         fileSize: file.size,
         fileData: base64Data,
         uploadedBy: uploadUserId,
-        category: category
+        category: type || 'document'
       }
     })
 
-    // Return the file ID and URL for retrieval
     const fileUrl = `/api/files/${uploadedFile.id}`
+
+    console.log('Application file uploaded successfully:', {
+      fileId: uploadedFile.id,
+      fileName: fileName
+    })
 
     return NextResponse.json({
       success: true,
@@ -74,7 +67,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error uploading file:', error)
+    console.error('Error uploading application file:', error)
     return NextResponse.json(
       { error: 'Failed to upload file' },
       { status: 500 }

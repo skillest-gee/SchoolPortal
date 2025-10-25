@@ -8,11 +8,14 @@ export const FILE_CONFIG = {
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain'
+    'text/plain',
+    'image/jpeg', // Allow images as documents too
+    'image/jpg',
+    'image/png'
   ],
   ALLOWED_EXTENSIONS: {
     images: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
-    documents: ['.pdf', '.doc', '.docx', '.txt']
+    documents: ['.pdf', '.doc', '.docx', '.txt', '.jpg', '.jpeg', '.png']
   }
 }
 
@@ -109,8 +112,16 @@ export function validateFileForUpload(
       }
       break
     case 'document':
-      if (!validateFileType(file, FILE_CONFIG.ALLOWED_DOCUMENT_TYPES)) {
-        errors.push('Only PDF, DOC, DOCX, and TXT files are allowed for documents')
+      // More lenient validation for documents - allow common file types
+      const allowedDocumentTypes = [
+        ...FILE_CONFIG.ALLOWED_DOCUMENT_TYPES,
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+        'application/octet-stream', // Generic binary file
+        'application/zip', // ZIP files
+        'application/x-zip-compressed' // ZIP files
+      ]
+      if (!validateFileType(file, allowedDocumentTypes)) {
+        errors.push('Only PDF, DOC, DOCX, TXT, and image files are allowed for documents')
       }
       break
     case 'assignment':
