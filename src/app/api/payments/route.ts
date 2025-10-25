@@ -2,181 +2,173 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { withAPIRateLimit } from '@/lib/rate-limit'
-import { handleError, handleDatabaseError, NotFoundError, ValidationError } from '@/lib/error-handling'
 import { z } from 'zod'
 
 const paymentSchema = z.object({
-  feeId: z.string().min(1, 'Fee ID is required'),
-  amount: z.number().min(0.01, 'Amount must be greater than 0'),
-  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'MOBILE_MONEY', 'CARD']),
-  reference: z.string().min(1, 'Payment reference is required'),
-  notes: z.string().max(500).optional()
+  feeId: z.string(),
+  amount: z.number().min(0.01),
+  paymentMethod: z.string(),
+  reference: z.string().optional(),
+  notes: z.string().optional()
 })
 
-export const GET = withAPIRateLimit(async (request: NextRequest) => {
+// POST: Record payment for fee
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const { searchParams } = new URL(request.url)
-    const studentId = searchParams.get('studentId')
-    const status = searchParams.get('status')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-
-    // Build where clause based on user role and filters
-    let whereClause: any = {}
-    
-    if (studentId) {
-      whereClause.studentId = studentId
-    }
-    
-    if (status) {
-      whereClause.status = status
-    }
-
-    // For students, only show their own payments
-    if (session.user.role === 'STUDENT') {
-      whereClause.studentId = session.user.id
-    }
-
-    const payments = await prisma.payment.findMany({
-      where: whereClause,
-      include: {
-        student: {
-          include: {
-            studentProfile: true
-          }
-        },
-        fee: true
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit
-    })
-
-    const total = await prisma.payment.count({ where: whereClause })
-
-    return NextResponse.json({
-      success: true,
-      data: payments,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    })
-  } catch (error) {
-    return handleError(error, '/api/payments')
-  }
-})
-
-export const POST = withAPIRateLimit(async (request: NextRequest) => {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session || !session.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    const validation = paymentSchema.safeParse(body)
-    
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.errors },
-        { status: 400 }
-      )
-    }
+    const validatedData = paymentSchema.parse(body)
 
-    const paymentData = validation.data
-
-    // Check if fee exists
-    const fee = await prisma.fee.findUnique({
-      where: { id: paymentData.feeId },
-      include: { student: true }
+    // Check if fee exists and belongs to student
+    const fee = await prisma.fee.findFirst({
+      where: {
+        id: validatedData.feeId,
+        studentId: session.user.id
+      }
     })
 
     if (!fee) {
-      throw new NotFoundError('Fee not found')
+      return NextResponse.json({ error: 'Fee not found' }, { status: 404 })
     }
 
-    // Check if student owns the fee
-    if (session.user.role === 'STUDENT' && fee.studentId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      )
-    }
+    // Check if payment amount is valid
+    const existingPayments = await prisma.payment.findMany({
+      where: {
+        feeId: validatedData.feeId,
+        status: 'COMPLETED'
+      }
+    })
 
-    // Check if fee is already paid
-    if (fee.isPaid) {
+    const totalPaid = existingPayments.reduce((sum, payment) => sum + payment.amount, 0)
+    const remainingAmount = fee.amount - totalPaid
+
+    if (validatedData.amount > remainingAmount) {
       return NextResponse.json(
-        { error: 'Fee is already paid' },
+        { error: `Payment amount cannot exceed remaining balance of $${remainingAmount.toFixed(2)}` },
         { status: 400 }
       )
-    }
-
-    // Validate payment amount
-    if (paymentData.amount > fee.amount) {
-      throw new ValidationError('Payment amount cannot exceed fee amount')
     }
 
     // Create payment record
     const payment = await prisma.payment.create({
       data: {
-        feeId: paymentData.feeId,
-        studentId: fee.studentId,
-        amount: paymentData.amount,
-        paymentMethod: paymentData.paymentMethod,
-        reference: paymentData.reference,
-        notes: paymentData.notes,
-        status: 'PENDING' // Will be updated after verification
-      },
-      include: {
-        student: {
-          include: {
-            studentProfile: true
-          }
-        },
-        fee: true
+        feeId: validatedData.feeId,
+        studentId: session.user.id,
+        amount: validatedData.amount,
+        paymentMethod: validatedData.paymentMethod,
+        reference: validatedData.reference || `PAY-${Date.now()}`,
+        notes: validatedData.notes,
+        status: 'COMPLETED', // For now, auto-approve payments
       }
     })
 
-    // If payment amount equals fee amount, mark fee as paid
-    if (paymentData.amount >= fee.amount) {
+    // Check if fee is now fully paid
+    const newTotalPaid = totalPaid + validatedData.amount
+    const isFullyPaid = newTotalPaid >= fee.amount
+
+    if (isFullyPaid) {
+      // Update fee status
       await prisma.fee.update({
-        where: { id: paymentData.feeId },
-        data: {
-          isPaid: true,
-          paymentDate: new Date(),
-          status: 'PAID'
-        }
+        where: { id: validatedData.feeId },
+        data: { status: 'PAID' }
       })
 
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: 'COMPLETED' }
+      // Create notification
+      await prisma.notification.create({
+        data: {
+          userId: session.user.id,
+          title: 'Payment Completed',
+          content: `Your payment of $${validatedData.amount.toFixed(2)} for ${fee.description} has been processed successfully.`,
+          type: 'SUCCESS'
+        }
       })
     }
 
     return NextResponse.json({
       success: true,
-      data: payment,
-      message: 'Payment processed successfully'
-    }, { status: 201 })
+      message: 'Payment recorded successfully',
+      data: {
+        payment,
+        isFullyPaid,
+        remainingAmount: fee.amount - newTotalPaid
+      }
+    })
+
   } catch (error) {
-    return handleError(handleDatabaseError(error), '/api/payments')
+    console.error('Error recording payment:', error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
-})
+}
+
+// GET: Get payment history for student
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const feeId = searchParams.get('feeId')
+
+    let whereClause: any = {
+      studentId: session.user.id
+    }
+
+    if (feeId) {
+      whereClause.feeId = feeId
+    }
+
+    const payments = await prisma.payment.findMany({
+      where: whereClause,
+      include: {
+        fee: {
+          select: {
+            description: true,
+            amount: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: payments.map(payment => ({
+        id: payment.id,
+        amount: payment.amount,
+        paymentMethod: payment.paymentMethod,
+        reference: payment.reference,
+        status: payment.status,
+        createdAt: payment.createdAt,
+        fee: payment.fee
+      }))
+    })
+
+  } catch (error) {
+    console.error('Error fetching payments:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

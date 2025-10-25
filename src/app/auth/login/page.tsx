@@ -39,38 +39,57 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const result = await signIn('credentials', {
-        email: data.email,
-        password: data.password,
-        redirect: false,
+      // First, try the direct API login
+      const loginResponse = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
       })
 
-      if (result?.error) {
-        setError('Invalid email or password')
-      } else {
-        // Get the session to check user role and redirect accordingly
-        const session = await getSession()
-        if (session?.user?.role) {
-          switch (session.user.role) {
+      const loginResult = await loginResponse.json()
+
+      if (loginResult.success) {
+        // If API login successful, use NextAuth signIn to establish session
+        const result = await signIn('credentials', {
+          email: data.email,
+          password: data.password,
+          redirect: false,
+        })
+
+        if (result?.ok) {
+          // Wait for session to be established
+          await new Promise(resolve => setTimeout(resolve, 200))
+          
+          // Force redirect based on user role
+          switch (loginResult.user.role) {
             case 'ADMIN':
-              router.push('/admin/dashboard')
+              window.location.href = '/admin/dashboard'
               break
             case 'LECTURER':
-              router.push('/lecturer/dashboard')
+              window.location.href = '/lecturer/dashboard'
               break
             case 'STUDENT':
-              router.push('/student/dashboard')
+              window.location.href = '/student/dashboard'
               break
             default:
-              router.push('/dashboard')
+              window.location.href = '/dashboard'
           }
         } else {
-          router.push('/dashboard')
+          setError('Session establishment failed. Please try again.')
+          setIsLoading(false)
         }
+      } else {
+        setError(loginResult.error || 'Invalid credentials')
+        setIsLoading(false)
       }
     } catch (error) {
+      console.error('Login error:', error)
       setError('An unexpected error occurred. Please try again.')
-    } finally {
       setIsLoading(false)
     }
   }

@@ -22,7 +22,8 @@ import {
   User, 
   Settings, 
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Key
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -59,7 +60,7 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
         { name: 'Course Registration', href: '/student/course-registration', icon: BookOpen },
         { name: 'Grades', href: '/student/grades', icon: TrendingUp },
         { name: 'Attendance', href: '/student/attendance', icon: Users },
-        { name: 'Finances', href: '/student/finances', icon: DollarSign },
+        { name: 'Finance Portal', href: '/student/finance', icon: DollarSign },
         { name: 'Library', href: '/library', icon: Library },
         { name: 'Self-Service', href: '/self-service', icon: Award },
       ]
@@ -74,7 +75,8 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
         ...baseItems,
         { name: 'User Management', href: '/admin/users', icon: Users },
         { name: 'Applications', href: '/admin/applications', icon: FileText },
-        { name: 'Finance Management', href: '/admin/finances', icon: DollarSign },
+        { name: 'Fee Management', href: '/admin/fees', icon: DollarSign },
+        { name: 'Student Credentials', href: '/admin/credentials', icon: Key },
         { name: 'Library Management', href: '/admin/library', icon: Library },
       ]
     }

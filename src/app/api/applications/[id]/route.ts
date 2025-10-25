@@ -342,12 +342,36 @@ export async function PUT(
           }
         })
 
-        // TODO: Implement actual email/SMS sending here
-        console.log(`📧 ADMISSION EMAIL TO: ${application.email}`)
-        console.log(`📱 ADMISSION SMS TO: ${application.phoneNumber}`)
-        console.log(`🔐 SECURE PASSWORD: ${securePassword}`)
-        console.log(`✅ Student ${generatedStudentId} admitted successfully!`)
-        console.log(`💰 Admission fee of $5,000.00 created`)
+        // Send admission email to student
+        const admissionEmail = generateAdmissionEmail({
+          studentName: `${application.firstName} ${application.lastName}`,
+          email: application.email,
+          indexNumber: generatedStudentId,
+          programme: application.programme.name,
+          fees: programmeFees[application.programme.name as keyof typeof programmeFees] || programmeFees['BACHELOR OF SCIENCE (INFORMATION TECHNOLOGY)'],
+          paymentInstructions: `
+            Payment Instructions:
+            1. Login to the student portal using your credentials
+            2. Navigate to "Fees & Payments" in the sidebar
+            3. View your admission fee of $5,000.00
+            4. Make payment through the available payment methods
+            5. Upload payment receipt for verification
+            
+            Important Notes:
+            • Payment must be completed within 30 days of admission
+            • Late payments may incur additional charges
+            • Contact the finance office for payment assistance
+            • Keep your payment receipt for records
+          `
+        })
+
+        const emailResult = await sendEmail(admissionEmail)
+        
+        if (!emailResult.success) {
+          console.error('Failed to send admission email:', emailResult.error)
+        } else {
+          console.log('✅ Admission email sent successfully:', emailResult.messageId)
+        }
       } catch (notificationError) {
         console.error('Error sending notifications:', notificationError)
       }

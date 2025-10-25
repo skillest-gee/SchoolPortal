@@ -4,6 +4,9 @@ import { join } from 'path'
 import { validateFileForUpload, generateUniqueFileName, sanitizeFileName } from '@/lib/file-validation'
 import { existsSync } from 'fs'
 
+const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB default
+const UPLOAD_DIR = process.env.UPLOAD_DIR || './public/uploads'
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -27,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads')
+    const uploadsDir = join(process.cwd(), UPLOAD_DIR.replace('./', ''))
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true })
     }

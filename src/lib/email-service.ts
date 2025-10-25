@@ -1,5 +1,7 @@
-// Email service for sending notifications
-// In a real system, you'd integrate with services like SendGrid, AWS SES, or Nodemailer
+// Email service for sending notifications using Resend
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY || process.env.EMAIL_SERVER_PASSWORD)
 
 export interface EmailTemplate {
   to: string
@@ -397,26 +399,34 @@ This is an automated message. Please do not reply to this email.
   return { to: data.email, subject, html, text }
 }
 
-// Email sending function (placeholder - integrate with real email service)
+// Email sending function using Resend
 export async function sendEmail(template: EmailTemplate): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    // In a real system, you would integrate with:
-    // - SendGrid: https://sendgrid.com/
-    // - AWS SES: https://aws.amazon.com/ses/
-    // - Nodemailer: https://nodemailer.com/
-    // - Mailgun: https://www.mailgun.com/
-    
-    console.log('📧 EMAIL SENT:')
+    console.log('📧 SENDING EMAIL VIA RESEND:')
     console.log(`   To: ${template.to}`)
     console.log(`   Subject: ${template.subject}`)
-    console.log(`   Content Length: ${template.html.length} characters`)
     
-    // Simulate email sending
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'noreply@schoolportal.com',
+      to: [template.to],
+      subject: template.subject,
+      html: template.html,
+      text: template.text
+    })
+
+    if (error) {
+      console.error('❌ Resend email error:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to send email'
+      }
+    }
+
+    console.log('✅ EMAIL SENT SUCCESSFULLY:', data?.id)
     
     return {
       success: true,
-      messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      messageId: data?.id
     }
   } catch (error) {
     console.error('❌ Email sending failed:', error)

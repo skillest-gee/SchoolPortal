@@ -22,6 +22,56 @@ export async function GET(request: NextRequest) {
     }
 
     const studentId = session.user.id
+    const { searchParams } = new URL(request.url)
+    const academicYear = searchParams.get('academicYear') || '2024/2025'
+    const semester = searchParams.get('semester') || '1st Semester'
+
+    // Check if registration is open
+    const registrationPeriod = await prisma.courseRegistrationPeriod.findFirst({
+      where: {
+        academicYear: academicYear,
+        semester: semester,
+        isActive: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    const isRegistrationOpen = registrationPeriod ? 
+      new Date() >= registrationPeriod.startDate && new Date() <= registrationPeriod.endDate : false
+
+    // Check student's fee status - simplified check
+    const studentFees = await prisma.fee.findMany({
+      where: {
+        studentId: studentId
+      },
+      include: {
+        payments: {
+          where: {
+            status: 'COMPLETED'
+          }
+        }
+      }
+    })
+
+    // Simple fee check - student can register if they have any payment history
+    const hasAnyPayments = studentFees.some(fee => fee.payments.length > 0)
+    const feeAnalysis = {
+      canRegister: hasAnyPayments,
+      outstandingAmount: studentFees.reduce((sum, fee) => {
+        const paidAmount = fee.payments.reduce((paymentSum, payment) => paymentSum + payment.amount, 0)
+        return sum + (fee.amount - paidAmount)
+      }, 0),
+      missingPayments: studentFees.filter(fee => {
+        const paidAmount = fee.payments.reduce((sum, payment) => sum + payment.amount, 0)
+        return fee.amount > paidAmount
+      }).map(fee => ({
+        description: fee.description,
+        amount: fee.amount - fee.payments.reduce((sum, payment) => sum + payment.amount, 0),
+        dueDate: fee.dueDate
+      }))
+    }
 
     // Get student profile to determine program
     const studentProfile = await prisma.studentProfile.findUnique({
@@ -67,6 +117,8 @@ export async function GET(request: NextRequest) {
       title: course.title,
       description: course.description,
       credits: course.credits,
+      department: course.department,
+      level: course.level,
       lecturer: {
         name: course.lecturer.name || 'TBA'
       },
@@ -74,34 +126,48 @@ export async function GET(request: NextRequest) {
     }))
 
     // Determine registration status
-    const currentDate = new Date()
-    const semesterStart = new Date('2024-09-01') // Fall semester start
-    const semesterEnd = new Date('2024-12-15') // Fall semester end
-    const registrationDeadline = new Date('2024-09-15') // Registration deadline
-
-    let registrationStatus: 'OPEN' | 'CLOSED' | 'COMPLETED' = 'CLOSED'
+    let registrationStatus: 'OPEN' | 'CLOSED' | 'COMPLETED' | 'FEES_OUTSTANDING' = 'CLOSED'
     let canRegister = false
+    let registrationMessage = ''
 
     if (hasRegistered) {
       registrationStatus = 'COMPLETED'
-    } else if (currentDate >= semesterStart && currentDate <= registrationDeadline) {
+      registrationMessage = 'You have already registered for this semester'
+    } else if (!isRegistrationOpen) {
+      registrationStatus = 'CLOSED'
+      registrationMessage = 'Course registration is currently closed'
+    } else if (!feeAnalysis.canRegister) {
+      registrationStatus = 'FEES_OUTSTANDING'
+      registrationMessage = `You have outstanding fees of $${feeAnalysis.outstandingAmount.toFixed(2)}. Please pay your fees before registering for courses.`
+    } else {
       registrationStatus = 'OPEN'
       canRegister = true
+      registrationMessage = 'Course registration is open. You can register for courses.'
     }
 
     return NextResponse.json({
       success: true,
       data: {
         courses: coursesWithEnrollmentStatus,
-        totalCredits: existingEnrollments.reduce((sum, enrollment) => {
-          const course = courses.find(c => c.id === enrollment.courseId)
-          return sum + (course?.credits || 0)
-        }, 0),
-        canRegister,
         registrationStatus,
+        canRegister,
+        registrationMessage,
+        feeStatus: {
+          canRegister: feeAnalysis.canRegister,
+          outstandingAmount: feeAnalysis.outstandingAmount,
+          missingPayments: feeAnalysis.missingPayments,
+          totalFees: 0,
+          paidAmount: 0
+        },
+        registrationPeriod: registrationPeriod ? {
+          name: registrationPeriod.name,
+          startDate: registrationPeriod.startDate,
+          endDate: registrationPeriod.endDate,
+          description: registrationPeriod.description
+        } : null,
         studentProfile: {
-          level: studentProfile.level,
-          programme: studentProfile.programme
+          program: studentProfile.program,
+          yearOfStudy: studentProfile.yearOfStudy
         }
       }
     })
@@ -132,6 +198,57 @@ export async function POST(request: NextRequest) {
     const { courseIds } = registrationSchema.parse(body)
 
     const studentId = session.user.id
+    const academicYear = '2024/2025'
+    const semester = '1st Semester'
+
+    // Check if registration is open
+    const registrationPeriod = await prisma.courseRegistrationPeriod.findFirst({
+      where: {
+        academicYear: academicYear,
+        semester: semester,
+        isActive: true
+      }
+    })
+
+    const isRegistrationOpen = registrationPeriod ? 
+      new Date() >= registrationPeriod.startDate && new Date() <= registrationPeriod.endDate : false
+
+    if (!isRegistrationOpen) {
+      return NextResponse.json(
+        { error: 'Course registration is currently closed' },
+        { status: 400 }
+      )
+    }
+
+    // Check student's fee status
+    const studentFees = await prisma.fee.findMany({
+      where: {
+        studentId: studentId
+      },
+      include: {
+        payments: {
+          where: {
+            status: 'COMPLETED'
+          }
+        }
+      }
+    })
+
+    // Calculate fee status
+    const tuitionFees = studentFees.filter(fee => fee.description.includes('Tuition'))
+    const totalTuition = tuitionFees.reduce((sum, fee) => sum + fee.amount, 0)
+    const paidTuition = tuitionFees.reduce((sum, fee) => 
+      sum + fee.payments.reduce((paymentSum, payment) => paymentSum + payment.amount, 0), 0
+    )
+
+    const canRegister = totalTuition > 0 && (paidTuition / totalTuition) >= 0.5
+
+    if (!canRegister) {
+      return NextResponse.json(
+        { error: 'You must pay at least 50% of your tuition fees before registering for courses' },
+        { status: 400 }
+      )
+    }
 
     // Check if student has already registered
     const existingEnrollments = await prisma.enrollment.findMany({
@@ -194,8 +311,8 @@ export async function POST(request: NextRequest) {
           data: {
             studentId: studentId,
             courseId: courseId,
-            semester: '1st Semester',
-            academicYear: '2024/2025',
+            semester: semester,
+            academicYear: academicYear,
             grade: null, // No grade yet
             points: null
           }
@@ -208,7 +325,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId: studentId,
         title: 'Course Registration Successful',
-        content: `You have successfully registered for ${courseIds.length} courses (${totalCredits} credits) for the 1st Semester 2024/2025.`,
+        content: `You have successfully registered for ${courseIds.length} courses (${totalCredits} credits) for the ${semester} ${academicYear}.`,
         type: 'SUCCESS'
       }
     })

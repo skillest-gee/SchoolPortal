@@ -19,20 +19,18 @@ import {
   Calendar,
   ExternalLink
 } from 'lucide-react'
-import { LoadingState, ErrorAlert } from '@/components/ui/loading'
-import { parseApiError, getUserFriendlyMessage } from '@/lib/error-handling'
+import Loading from '@/components/ui/loading'
+import { ErrorAlert } from '@/components/ui/loading'
 
 interface Notification {
   id: string
   title: string
-  message: string
-  type: 'info' | 'success' | 'warning' | 'error'
-  category: 'assignment' | 'grade' | 'payment' | 'announcement' | 'system'
-  actionUrl?: string
-  metadata?: Record<string, any>
-  isRead: boolean
-  createdAt: string
+  content: string
+  type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR'
+  isRead?: boolean
   readAt?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export default function NotificationsPage() {
@@ -64,11 +62,7 @@ export default function NotificationsPage() {
       const response = await fetch('/api/notifications?limit=100')
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        const apiError = parseApiError({
-          message: errorData.error || `HTTP ${response.status}`,
-          statusCode: response.status
-        })
-        throw new Error(getUserFriendlyMessage(apiError))
+        throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
       const data = await response.json()
@@ -155,30 +149,19 @@ export default function NotificationsPage() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'success': return CheckCircle
-      case 'warning': return AlertTriangle
-      case 'error': return AlertCircle
+      case 'SUCCESS': return CheckCircle
+      case 'WARNING': return AlertTriangle
+      case 'ERROR': return AlertCircle
       default: return Info
     }
   }
 
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'success': return 'text-green-600 bg-green-100'
-      case 'warning': return 'text-yellow-600 bg-yellow-100'
-      case 'error': return 'text-red-600 bg-red-100'
+      case 'SUCCESS': return 'text-green-600 bg-green-100'
+      case 'WARNING': return 'text-yellow-600 bg-yellow-100'
+      case 'ERROR': return 'text-red-600 bg-red-100'
       default: return 'text-blue-600 bg-blue-100'
-    }
-  }
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'assignment': return 'bg-blue-100 text-blue-800'
-      case 'grade': return 'bg-green-100 text-green-800'
-      case 'payment': return 'bg-purple-100 text-purple-800'
-      case 'announcement': return 'bg-orange-100 text-orange-800'
-      case 'system': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -195,14 +178,7 @@ export default function NotificationsPage() {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingState
-          isLoading={true}
-          error={null}
-          data={null}
-          loadingText="Loading notifications..."
-        >
-          <div>Loading...</div>
-        </LoadingState>
+        <Loading message="Loading notifications..." />
       </div>
     )
   }
@@ -295,15 +271,12 @@ export default function NotificationsPage() {
                             <h3 className={`font-semibold ${notification.isRead ? 'text-gray-700' : 'text-gray-900'}`}>
                               {notification.title}
                             </h3>
-                            <Badge className={getCategoryColor(notification.category)}>
-                              {notification.category}
-                            </Badge>
                             {!notification.isRead && (
                               <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                             )}
                           </div>
                           <p className={`text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-700'}`}>
-                            {notification.message}
+                            {notification.content}
                           </p>
                           <div className="flex items-center space-x-4 mt-3 text-xs text-gray-500">
                             <div className="flex items-center">
@@ -320,16 +293,6 @@ export default function NotificationsPage() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 ml-4">
-                        {notification.actionUrl && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push(notification.actionUrl!)}
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                        )}
                         {!notification.isRead && (
                           <Button
                             variant="outline"
@@ -344,7 +307,7 @@ export default function NotificationsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => deleteNotification(notification.id)}
-                          disabled={isDeleting}
+                          disabled={deleting === notification.id}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
