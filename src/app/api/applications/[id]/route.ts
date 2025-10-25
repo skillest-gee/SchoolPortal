@@ -234,8 +234,16 @@ export async function PUT(
     let generatedStudentId = null
     if (validatedData.status === 'APPROVED') {
       // Generate unique student ID in format STU2024004
-      const { generateSequentialStudentId } = await import('@/lib/student-mapping')
-      generatedStudentId = await generateSequentialStudentId('2024')
+      const year = '2024'
+      const existingStudents = await prisma.studentProfile.count({
+        where: {
+          studentId: {
+            startsWith: `STU${year}`
+          }
+        }
+      })
+      const nextNumber = existingStudents + 1
+      generatedStudentId = `STU${year}${nextNumber.toString().padStart(3, '0')}`
       
       // Create user account with secure password
       const bcrypt = await import('bcryptjs')
