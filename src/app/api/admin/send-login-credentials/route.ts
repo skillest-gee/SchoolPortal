@@ -139,14 +139,14 @@ export async function POST(request: NextRequest) {
       data: {
         userId: session.user.id,
         title: 'Login Credentials Sent',
-        content: `Login credentials sent to ${student.name} (${student.indexNumber}). Hall assigned: ${validatedData.hallOfResidence}`,
+        content: `Login credentials sent to ${student.name} (${student.studentProfile?.studentId}). Hall assigned: ${validatedData.hallOfResidence}`,
         type: 'SUCCESS'
       }
     })
 
     // Log the credentials for admin reference
     console.log(`🔐 LOGIN CREDENTIALS SENT:`)
-    console.log(`   Student: ${student.name} (${student.indexNumber})`)
+    console.log(`   Student: ${student.name} (${student.studentProfile?.studentId})`)
     console.log(`   Email: ${student.email}`)
     console.log(`   Password: ${newPassword}`)
     console.log(`   Hall: ${validatedData.hallOfResidence}`)
