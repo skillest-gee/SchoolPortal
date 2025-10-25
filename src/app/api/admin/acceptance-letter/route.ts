@@ -114,11 +114,11 @@ export async function GET(request: NextRequest) {
       student: {
         name: student.name,
         email: student.email,
-        indexNumber: student.indexNumber,
+        studentId: student.studentProfile?.studentId,
         programme: programme
       },
       fees: fees,
-      letterContent: generateLetterContent(student.name || 'Student', programme, fees, student.indexNumber || '')
+      letterContent: generateLetterContent(student.name || 'Student', programme, fees, student.studentProfile?.studentId || '')
     }
 
     return NextResponse.json({
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateLetterContent(studentName: string, programme: string, fees: any, indexNumber: string) {
+function generateLetterContent(studentName: string, programme: string, fees: any, studentId: string) {
   const currentDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -175,10 +175,10 @@ PAYMENT INSTRUCTIONS:
    - Installment plans available upon request
 
 3. LOGIN CREDENTIALS:
-   - Index Number: ${indexNumber}
+   - Student ID: ${studentId}
    - Password: [Secure password will be provided separately via secure email]
    - Login URL: https://your-school-portal.com/auth/login
-   - You can use either your email or index number to login
+   - You can use either your email or student ID to login
 
 NEXT STEPS:
 1. Pay the admission fee of $${fees.admission.toLocaleString()}
