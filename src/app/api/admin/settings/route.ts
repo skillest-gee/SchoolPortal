@@ -4,6 +4,22 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+// Helper function to categorize settings
+function getCategoryForKey(key: string): string {
+  if (key.includes('university') || key.includes('timezone') || key.includes('language')) {
+    return 'GENERAL'
+  } else if (key.includes('academic') || key.includes('semester') || key.includes('credits') || key.includes('enrollment')) {
+    return 'ACADEMIC'
+  } else if (key.includes('maintenance') || key.includes('registration') || key.includes('notifications')) {
+    return 'SYSTEM'
+  } else if (key.includes('password') || key.includes('session') || key.includes('auth')) {
+    return 'SECURITY'
+  } else if (key.includes('backup')) {
+    return 'BACKUP'
+  }
+  return 'GENERAL'
+}
+
 const systemSettingsSchema = z.object({
   // General Settings
   universityName: z.string().min(1, 'University name is required'),
@@ -57,44 +73,94 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // For now, return default settings
-    // In a real system, these would be stored in a settings table
-    const defaultSettings = {
-      // General Settings
-      universityName: 'University of Technology',
-      universityEmail: 'admin@university.edu',
-      universityPhone: '+1 (555) 123-4567',
-      universityAddress: '123 University Avenue, City, State 12345',
-      timezone: 'UTC-5',
-      language: 'en',
+    // Get settings from database
+    const settings = await prisma.systemSettings.findMany({
+      where: { isActive: true }
+    })
+
+    // Convert to object format
+    const settingsObject = settings.reduce((acc, setting) => {
+      // Parse value based on expected type
+      let value = setting.value
+      if (setting.key.includes('Credits') || setting.key.includes('Length') || setting.key.includes('Timeout') || setting.key.includes('Retention')) {
+        value = parseInt(setting.value)
+      } else if (setting.key.includes('Mode') || setting.key.includes('Open') || setting.key.includes('Notifications') || setting.key.includes('Auth') || setting.key.includes('Backup')) {
+        value = setting.value === 'true'
+      }
       
-      // Academic Settings
-      academicYear: '2024/2025',
-      semester: 'First Semester',
-      maxCourseCredits: 18,
-      minCourseCredits: 12,
-      enrollmentDeadline: '2024-08-15',
-      
-      // System Settings
-      maintenanceMode: false,
-      registrationOpen: true,
-      emailNotifications: true,
-      smsNotifications: false,
-      
-      // Security Settings
-      passwordMinLength: 8,
-      sessionTimeout: 30,
-      twoFactorAuth: false,
-      
-      // Backup Settings
-      autoBackup: true,
-      backupFrequency: 'daily',
-      backupRetention: 30
+      acc[setting.key] = value
+      return acc
+    }, {} as any)
+
+    // If no settings exist, create default settings
+    if (Object.keys(settingsObject).length === 0) {
+      const defaultSettings = [
+        { key: 'universityName', value: 'University of Technology', category: 'GENERAL' },
+        { key: 'universityEmail', value: 'admin@university.edu', category: 'GENERAL' },
+        { key: 'universityPhone', value: '+1 (555) 123-4567', category: 'GENERAL' },
+        { key: 'universityAddress', value: '123 University Avenue, City, State 12345', category: 'GENERAL' },
+        { key: 'timezone', value: 'UTC-5', category: 'GENERAL' },
+        { key: 'language', value: 'en', category: 'GENERAL' },
+        { key: 'academicYear', value: '2024/2025', category: 'ACADEMIC' },
+        { key: 'semester', value: 'First Semester', category: 'ACADEMIC' },
+        { key: 'maxCourseCredits', value: '18', category: 'ACADEMIC' },
+        { key: 'minCourseCredits', value: '12', category: 'ACADEMIC' },
+        { key: 'enrollmentDeadline', value: '2024-08-15', category: 'ACADEMIC' },
+        { key: 'maintenanceMode', value: 'false', category: 'SYSTEM' },
+        { key: 'registrationOpen', value: 'true', category: 'SYSTEM' },
+        { key: 'emailNotifications', value: 'true', category: 'SYSTEM' },
+        { key: 'smsNotifications', value: 'false', category: 'SYSTEM' },
+        { key: 'passwordMinLength', value: '8', category: 'SECURITY' },
+        { key: 'sessionTimeout', value: '30', category: 'SECURITY' },
+        { key: 'twoFactorAuth', value: 'false', category: 'SECURITY' },
+        { key: 'autoBackup', value: 'true', category: 'BACKUP' },
+        { key: 'backupFrequency', value: 'daily', category: 'BACKUP' },
+        { key: 'backupRetention', value: '30', category: 'BACKUP' }
+      ]
+
+      await prisma.systemSettings.createMany({
+        data: defaultSettings.map(setting => ({
+          key: setting.key,
+          value: setting.value,
+          category: setting.category,
+          description: `Default ${setting.key} setting`
+        }))
+      })
+
+      // Return default settings
+      const defaultSettingsObject = {
+        universityName: 'University of Technology',
+        universityEmail: 'admin@university.edu',
+        universityPhone: '+1 (555) 123-4567',
+        universityAddress: '123 University Avenue, City, State 12345',
+        timezone: 'UTC-5',
+        language: 'en',
+        academicYear: '2024/2025',
+        semester: 'First Semester',
+        maxCourseCredits: 18,
+        minCourseCredits: 12,
+        enrollmentDeadline: '2024-08-15',
+        maintenanceMode: false,
+        registrationOpen: true,
+        emailNotifications: true,
+        smsNotifications: false,
+        passwordMinLength: 8,
+        sessionTimeout: 30,
+        twoFactorAuth: false,
+        autoBackup: true,
+        backupFrequency: 'daily',
+        backupRetention: 30
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: defaultSettingsObject
+      })
     }
 
     return NextResponse.json({
       success: true,
-      data: defaultSettings
+      data: settingsObject
     })
 
   } catch (error) {
@@ -129,9 +195,31 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const validatedData = systemSettingsSchema.parse(body)
 
-    // In a real system, you would save these to a settings table
-    // For now, we'll just return success
-    console.log('System settings updated:', validatedData)
+    // Update settings in database
+    const settingsToUpdate = Object.entries(validatedData).map(([key, value]) => ({
+      key,
+      value: String(value),
+      category: getCategoryForKey(key)
+    }))
+
+    // Use upsert to update existing settings or create new ones
+    await Promise.all(
+      settingsToUpdate.map(setting =>
+        prisma.systemSettings.upsert({
+          where: { key: setting.key },
+          update: { 
+            value: setting.value,
+            updatedAt: new Date()
+          },
+          create: {
+            key: setting.key,
+            value: setting.value,
+            category: setting.category,
+            description: `System setting for ${setting.key}`
+          }
+        })
+      )
+    )
 
     // Create a notification for the admin
     await prisma.notification.create({

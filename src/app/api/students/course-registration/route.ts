@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getSystemSetting } from '@/lib/system-settings'
 import { z } from 'zod'
 
 const registrationSchema = z.object({
@@ -26,20 +27,41 @@ export async function GET(request: NextRequest) {
     const academicYear = searchParams.get('academicYear') || '2024/2025'
     const semester = searchParams.get('semester') || '1st Semester'
 
-    // Check if registration is open
-    const registrationPeriod = await prisma.courseRegistrationPeriod.findFirst({
-      where: {
-        academicYear: academicYear,
-        semester: semester,
-        isActive: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    // Check system settings for registration status
+    const registrationOpen = await getSystemSetting('registrationOpen') as boolean
+    const maintenanceMode = await getSystemSetting('maintenanceMode') as boolean
 
-    const isRegistrationOpen = registrationPeriod ? 
-      new Date() >= registrationPeriod.startDate && new Date() <= registrationPeriod.endDate : false
+    if (maintenanceMode) {
+      return NextResponse.json({
+        success: false,
+        error: 'System is currently under maintenance. Registration is temporarily disabled.',
+        data: {
+          courses: [],
+          registrationStatus: 'MAINTENANCE',
+          canRegister: false,
+          registrationMessage: 'System is under maintenance',
+          feeStatus: { canRegister: false, outstandingAmount: 0, missingPayments: [], totalFees: 0, paidAmount: 0 },
+          registrationPeriod: null,
+          studentProfile: { program: '', yearOfStudy: '' }
+        }
+      })
+    }
+
+    if (!registrationOpen) {
+      return NextResponse.json({
+        success: false,
+        error: 'Course registration is currently closed by system administrator.',
+        data: {
+          courses: [],
+          registrationStatus: 'CLOSED',
+          canRegister: false,
+          registrationMessage: 'Course registration is currently closed by system administrator',
+          feeStatus: { canRegister: false, outstandingAmount: 0, missingPayments: [], totalFees: 0, paidAmount: 0 },
+          registrationPeriod: null,
+          studentProfile: { program: '', yearOfStudy: '' }
+        }
+      })
+    }
 
     // Check student's fee status - simplified check
     const studentFees = await prisma.fee.findMany({
@@ -127,16 +149,19 @@ export async function GET(request: NextRequest) {
     }))
 
     // Determine registration status
-    let registrationStatus: 'OPEN' | 'CLOSED' | 'COMPLETED' | 'FEES_OUTSTANDING' = 'CLOSED'
+    let registrationStatus: 'OPEN' | 'CLOSED' | 'COMPLETED' | 'FEES_OUTSTANDING' | 'MAINTENANCE' = 'CLOSED'
     let canRegister = false
     let registrationMessage = ''
 
-    if (hasRegistered) {
+    if (maintenanceMode) {
+      registrationStatus = 'MAINTENANCE'
+      registrationMessage = 'System is under maintenance'
+    } else if (!registrationOpen) {
+      registrationStatus = 'CLOSED'
+      registrationMessage = 'Course registration is currently closed by system administrator'
+    } else if (hasRegistered) {
       registrationStatus = 'COMPLETED'
       registrationMessage = 'You have already registered for this semester'
-    } else if (!isRegistrationOpen) {
-      registrationStatus = 'CLOSED'
-      registrationMessage = 'Course registration is currently closed'
     } else if (!feeAnalysis.canRegister) {
       registrationStatus = 'FEES_OUTSTANDING'
       registrationMessage = `You have outstanding fees of $${feeAnalysis.outstandingAmount.toFixed(2)}. Please pay your fees before registering for courses.`
@@ -160,12 +185,6 @@ export async function GET(request: NextRequest) {
           totalFees: 0,
           paidAmount: 0
         },
-        registrationPeriod: registrationPeriod ? {
-          name: registrationPeriod.name,
-          startDate: registrationPeriod.startDate,
-          endDate: registrationPeriod.endDate,
-          description: registrationPeriod.description
-        } : null,
         studentProfile: {
           program: studentProfile.program,
           yearOfStudy: studentProfile.yearOfStudy
@@ -202,21 +221,20 @@ export async function POST(request: NextRequest) {
     const academicYear = '2024/2025'
     const semester = '1st Semester'
 
-    // Check if registration is open
-    const registrationPeriod = await prisma.courseRegistrationPeriod.findFirst({
-      where: {
-        academicYear: academicYear,
-        semester: semester,
-        isActive: true
-      }
-    })
+    // Check system settings for registration status
+    const registrationOpen = await getSystemSetting('registrationOpen') as boolean
+    const maintenanceMode = await getSystemSetting('maintenanceMode') as boolean
 
-    const isRegistrationOpen = registrationPeriod ? 
-      new Date() >= registrationPeriod.startDate && new Date() <= registrationPeriod.endDate : false
-
-    if (!isRegistrationOpen) {
+    if (maintenanceMode) {
       return NextResponse.json(
-        { error: 'Course registration is currently closed' },
+        { error: 'System is currently under maintenance. Registration is temporarily disabled.' },
+        { status: 503 }
+      )
+    }
+
+    if (!registrationOpen) {
+      return NextResponse.json(
+        { error: 'Course registration is currently closed by system administrator.' },
         { status: 400 }
       )
     }

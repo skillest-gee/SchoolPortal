@@ -692,3 +692,16 @@ model AcademicEvent {
 
   @@map("academic_events")
 }
+
+model SystemSettings {
+  id                   String   @id @default(cuid())
+  key                  String   @unique
+  value                String
+  description          String?
+  category             String   // GENERAL, ACADEMIC, SYSTEM, SECURITY, BACKUP
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("system_settings")
+}
