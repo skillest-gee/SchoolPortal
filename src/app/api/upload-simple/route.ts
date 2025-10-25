@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { uploadFileToS3, generateS3FileName, getFileCategory } from '@/lib/s3-storage'
 
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB default
 
@@ -77,25 +78,35 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Convert file to base64 for storage in database
+    // Convert file to buffer and upload to S3
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    const base64Data = buffer.toString('base64')
-
-    // Generate simple filename
-    const timestamp = Date.now()
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+    
     const uploadUserId = userId || 'anonymous'
-    const fileName = `${sanitizedName}_${uploadUserId}_${timestamp}`
+    const s3FileName = generateS3FileName(file.name, uploadUserId, type || 'document')
+    
+    console.log('Uploading file to S3:', {
+      fileName: s3FileName,
+      contentType: file.type,
+      size: file.size
+    })
 
-    // Store file in database
+    const s3Key = await uploadFileToS3(
+      buffer,
+      s3FileName,
+      file.type || 'application/octet-stream',
+      getFileCategory(file.name, file.type)
+    )
+
+    // Store file metadata in database
     const uploadedFile = await prisma.uploadedFile.create({
       data: {
-        fileName: fileName,
+        fileName: s3FileName,
         originalName: file.name,
         fileType: file.type,
         fileSize: file.size,
-        fileData: base64Data,
+        s3Key: s3Key,
+        s3Bucket: process.env.AWS_S3_BUCKET_NAME || 'school-portal-files',
         uploadedBy: uploadUserId,
         category: type || 'document'
       }
@@ -106,15 +117,17 @@ export async function POST(request: NextRequest) {
 
     console.log('File uploaded successfully:', {
       fileId: uploadedFile.id,
-      fileName: fileName,
+      s3Key: s3Key,
+      fileName: s3FileName,
       fileUrl: fileUrl
     })
 
     return NextResponse.json({
       success: true,
       filePath: fileUrl,
-      fileName: fileName,
-      fileId: uploadedFile.id
+      fileName: s3FileName,
+      fileId: uploadedFile.id,
+      s3Key: s3Key
     })
 
   } catch (error) {
