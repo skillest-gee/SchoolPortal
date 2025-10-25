@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       courseCredits: record.course.credits,
       courseDepartment: record.course.department,
       courseLevel: record.course.level,
-      grade: parseFloat(record.grade || '0') || 0,
+      grade: record.grade ? parseFloat(record.grade) : null,
       semester: record.semester,
       academicYear: record.academicYear,
       status: record.grade ? 'graded' : 'pending',

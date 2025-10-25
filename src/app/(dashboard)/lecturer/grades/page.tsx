@@ -33,16 +33,14 @@ interface StudentGrade {
   id: string
   studentId: string
   studentName: string
+  studentIdNumber: string
+  courseId: string
   courseCode: string
   courseTitle: string
   grade: number | null
   semester: string
   academicYear: string
-  studentProfile: {
-    studentId: string
-    firstName: string
-    lastName: string
-  }
+  status: string
 }
 
 export default function LecturerGradesPage() {
@@ -73,7 +71,7 @@ export default function LecturerGradesPage() {
           const data = await response.json()
           if (data.success) {
             setCourses(data.data.courses)
-            setStudentGrades(data.data.academicRecords)
+            setStudentGrades(data.data.grades)
           } else {
             console.error('Failed to load grades:', data.error)
           }
@@ -144,7 +142,7 @@ export default function LecturerGradesPage() {
         },
         body: JSON.stringify({
           studentId: studentGrades.find(g => g.id === gradeId)?.studentId,
-          courseId: studentGrades.find(g => g.id === gradeId)?.courseCode,
+          courseId: studentGrades.find(g => g.id === gradeId)?.courseId,
           grade: parseFloat(newGrade),
           semester: studentGrades.find(g => g.id === gradeId)?.semester,
           academicYear: studentGrades.find(g => g.id === gradeId)?.academicYear
@@ -320,7 +318,7 @@ export default function LecturerGradesPage() {
                       <td className="py-3 px-4">
                         <div>
                           <div className="font-medium text-gray-900">{grade.studentName}</div>
-                          <div className="text-sm text-gray-500">ID: {grade.studentProfile.studentId}</div>
+                          <div className="text-sm text-gray-500">ID: {grade.studentIdNumber}</div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
