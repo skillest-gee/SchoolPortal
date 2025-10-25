@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     const loginEmail = generateLoginCredentialsEmail({
       studentName: student.name || 'Student',
       email: student.email,
-      indexNumber: student.indexNumber || 'N/A',
+      studentId: student.studentProfile?.studentId || 'N/A',
       password: newPassword,
       hallOfResidence: validatedData.hallOfResidence,
       loginUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/auth/login`,
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
       data: {
         studentId: student.id,
         studentName: student.name,
-        indexNumber: student.indexNumber,
+        studentIdNumber: student.studentProfile?.studentId,
         email: student.email,
         hallOfResidence: validatedData.hallOfResidence,
         emailMessageId: emailResult.messageId
