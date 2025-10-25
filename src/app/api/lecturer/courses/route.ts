@@ -2,86 +2,89 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { z } from 'zod'
 
-export async function GET(request: NextRequest) {
+const createCourseSchema = z.object({
+  code: z.string().min(1, 'Course code is required'),
+  title: z.string().min(1, 'Course title is required'),
+  description: z.string().optional(),
+  credits: z.number().min(1, 'Credits must be at least 1'),
+  department: z.string().min(1, 'Department is required'),
+  level: z.string().min(1, 'Level is required'),
+  semester: z.string().min(1, 'Semester is required'),
+  academicYear: z.string().min(1, 'Academic year is required'),
+})
+
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
     if (!session || session.user.role !== 'LECTURER') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const validatedData = createCourseSchema.parse(body)
+
+    // Check if course code already exists
+    const existingCourse = await prisma.course.findFirst({
+      where: { code: validatedData.code }
+    })
+
+    if (existingCourse) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'Course code already exists' },
+        { status: 400 }
       )
     }
 
-    const lecturerId = session.user.id
-
-    // Get lecturer's courses with enrollment counts
-    const courses = await prisma.course.findMany({
-      where: {
-        lecturerId: lecturerId
+    // Create course with lecturer as the creator (pending approval)
+    const course = await prisma.course.create({
+      data: {
+        code: validatedData.code,
+        title: validatedData.title,
+        description: validatedData.description,
+        credits: validatedData.credits,
+        department: validatedData.department,
+        level: validatedData.level,
+        semester: validatedData.semester,
+        academicYear: validatedData.academicYear,
+        lecturerId: session.user.id, // Lecturer creates the course
+        status: 'PENDING', // Requires admin approval
+        isActive: false, // Not active until approved
       },
       include: {
+        lecturer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        },
         _count: {
           select: {
             enrollments: true
           }
-        },
-        lecturer: {
-          select: {
-            name: true,
-            email: true
-          }
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
       }
     })
-
-    // Format courses data
-    const formattedCourses = courses.map(course => ({
-      id: course.id,
-      code: course.code,
-      title: course.title,
-      description: course.description || '',
-      credits: course.credits,
-      department: course.department,
-      level: course.level,
-      semester: course.semester,
-      academicYear: course.academicYear,
-      enrolledStudents: course._count.enrollments,
-      totalCapacity: 50, // Default capacity, can be made configurable
-      status: course.isActive ? 'active' : 'inactive',
-      createdAt: course.createdAt,
-      lecturer: course.lecturer
-    }))
-
-    // Calculate summary statistics
-    const totalCourses = courses.length
-    const totalStudents = courses.reduce((sum, course) => sum + course._count.enrollments, 0)
-    const activeCourses = courses.filter(course => course.isActive).length
-    const averageEnrollment = totalCourses > 0 ? Math.round(totalStudents / totalCourses) : 0
-
-    const summaryStats = {
-      totalCourses,
-      totalStudents,
-      activeCourses,
-      averageEnrollment
-    }
 
     return NextResponse.json({
       success: true,
-      data: {
-        courses: formattedCourses,
-        summary: summaryStats
-      }
+      data: course,
     })
-
   } catch (error) {
-    console.error('Error fetching lecturer courses:', error)
+    console.error('Error creating course:', error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid data', details: error.errors },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch courses' },
+      { error: 'Failed to create course' },
       { status: 500 }
     )
   }

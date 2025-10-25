@@ -128,6 +128,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         ...baseItems,
         { name: 'User Management', href: '/admin/users', icon: Users },
         { name: 'Applications', href: '/admin/applications', icon: FileText },
+        { name: 'Course Approval', href: '/admin/course-approval', icon: BookOpen },
         { name: 'Finance Management', href: '/admin/finances', icon: DollarSign },
         { name: 'Library Management', href: '/admin/library', icon: Library },
       ]

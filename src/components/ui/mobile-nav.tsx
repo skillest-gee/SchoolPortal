@@ -76,6 +76,7 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
         ...baseItems,
         { name: 'User Management', href: '/admin/users', icon: Users },
         { name: 'Applications', href: '/admin/applications', icon: FileText },
+        { name: 'Course Approval', href: '/admin/course-approval', icon: BookOpen },
         { name: 'Fee Management', href: '/admin/fees', icon: DollarSign },
         { name: 'Student Credentials', href: '/admin/credentials', icon: Key },
         { name: 'Library Management', href: '/admin/library', icon: Library },

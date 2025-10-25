@@ -26,9 +26,12 @@ interface Course {
   credits: number
   enrolledStudents: number
   totalCapacity: number
-  status: 'active' | 'inactive'
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
   semester: string
   academicYear: string
+  approvedBy?: string
+  approvedAt?: string
+  rejectionReason?: string
   createdAt: string
 }
 
@@ -87,9 +90,29 @@ export default function LecturerCoursesPage() {
   }
 
   const getStatusColor = (status: string) => {
-    return status === 'active' 
-      ? 'bg-green-100 text-green-800 border-green-200'
-      : 'bg-gray-100 text-gray-800 border-gray-200'
+    switch (status) {
+      case 'APPROVED':
+        return 'bg-green-100 text-green-800 border-green-200'
+      case 'PENDING':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'REJECTED':
+        return 'bg-red-100 text-red-800 border-red-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return 'Approved'
+      case 'PENDING':
+        return 'Pending Approval'
+      case 'REJECTED':
+        return 'Rejected'
+      default:
+        return status
+    }
   }
 
   const getEnrollmentColor = (enrolled: number, capacity: number) => {
@@ -112,7 +135,10 @@ export default function LecturerCoursesPage() {
               </h1>
               <p className="text-gray-600 mt-1">Manage your courses and student enrollments</p>
             </div>
-            <Button className="bg-green-600 hover:bg-green-700">
+            <Button 
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => router.push('/lecturer/courses/create')}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Create New Course
             </Button>
@@ -176,9 +202,9 @@ export default function LecturerCoursesPage() {
                   <Clock className="h-6 w-6 text-yellow-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Active Courses</p>
+                  <p className="text-sm font-medium text-gray-600">Approved Courses</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {courses.filter(course => course.status === 'active').length}
+                    {courses.filter(course => course.status === 'APPROVED').length}
                   </p>
                 </div>
               </div>
@@ -199,7 +225,7 @@ export default function LecturerCoursesPage() {
                     </CardDescription>
                   </div>
                   <Badge className={getStatusColor(course.status)}>
-                    {course.status}
+                    {getStatusText(course.status)}
                   </Badge>
                 </div>
               </CardHeader>
@@ -208,6 +234,22 @@ export default function LecturerCoursesPage() {
                   <p className="text-sm text-gray-600 line-clamp-2">
                     {course.description}
                   </p>
+                  
+                  {course.status === 'REJECTED' && course.rejectionReason && (
+                    <div className="p-2 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-xs text-red-700">
+                        <strong>Rejection Reason:</strong> {course.rejectionReason}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {course.status === 'APPROVED' && course.approvedAt && (
+                    <div className="p-2 bg-green-50 border border-green-200 rounded-md">
+                      <p className="text-xs text-green-700">
+                        <strong>Approved:</strong> {new Date(course.approvedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
                   
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">

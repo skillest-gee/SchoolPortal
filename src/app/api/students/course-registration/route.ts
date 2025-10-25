@@ -82,10 +82,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Student profile not found' }, { status: 404 })
     }
 
-    // Get all active courses
+    // Get all approved courses (only approved courses can be enrolled in)
     const courses = await prisma.course.findMany({
       where: {
-        isActive: true
+        isActive: true,
+        status: 'APPROVED'
       },
       include: {
         lecturer: true,
@@ -265,11 +266,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate courses exist and are active
+    // Validate courses exist and are approved
     const courses = await prisma.course.findMany({
       where: {
         id: { in: courseIds },
-        isActive: true
+        isActive: true,
+        status: 'APPROVED'
       }
     })
 

@@ -210,10 +210,13 @@ model Course {
   department       String           // Department offering the course
   level            String           // Course level (100, 200, 300, 400, 500)
   isActive         Boolean          @default(true)
-  status           String           @default("ACTIVE")
+  status           String           @default("PENDING") // PENDING, APPROVED, REJECTED
   semester         String?
   academicYear     String?
   lecturerId       String
+  approvedBy       String?          // Admin who approved the course
+  approvedAt       DateTime?        // When the course was approved
+  rejectionReason  String?          // Reason for rejection if applicable
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   academicRecords  AcademicRecord[]
