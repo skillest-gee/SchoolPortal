@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
         id: student.id,
         name: student.name || `${student.studentProfile?.firstName} ${student.studentProfile?.lastName}`,
         email: student.email,
-        indexNumber: student.indexNumber || student.studentProfile?.studentId,
+        studentId: student.studentProfile?.studentId,
         program: student.studentProfile?.program,
         hallOfResidence: student.studentProfile?.hall,
         hasCredentials: !!student.passwordHash,
