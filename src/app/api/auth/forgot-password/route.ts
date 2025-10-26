@@ -31,16 +31,14 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + 1) // Token expires in 1 hour
 
-    // Create or update reset token
-    await prisma.passwordResetToken.upsert({
-      where: { email },
-      update: {
-        token: resetToken,
-        expires: expiresAt,
-        used: false,
-        createdAt: new Date()
-      },
-      create: {
+    // Delete any existing reset token for this email
+    await prisma.passwordResetToken.deleteMany({
+      where: { email: user.email }
+    })
+
+    // Create new reset token
+    await prisma.passwordResetToken.create({
+      data: {
         email: user.email,
         token: resetToken,
         expires: expiresAt
