@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
     academicRecords.forEach(record => {
       if (record.grade !== null && record.grade !== undefined) {
         const credits = record.course.credits
-        const gradePoints = calculateGradePoints(record.grade)
+        const gradeValue = typeof record.grade === 'string' ? parseFloat(record.grade) : record.grade
+        const gradePoints = calculateGradePoints(gradeValue)
         totalPoints += gradePoints * credits
         totalCredits += credits
       }
