@@ -57,6 +57,26 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, etc.
+  entity    String   // User, Course, Application, etc.
+  entityId  String?
+  details   String?  @db.Text  // JSON string
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
 model UploadedFile {
   id           String   @id @default(cuid())
   fileName     String
@@ -178,6 +198,7 @@ model User {
   submissions              Submission[]
   lecturerTimetableEntries TimetableEntry[]     @relation("TimetableLecturer")
   timetableEntries         TimetableEntry[]     @relation("TimetableStudent")
+  activityLogs             ActivityLog[]
 
   @@index([email])
   @@index([role])
