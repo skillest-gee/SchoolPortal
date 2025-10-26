@@ -23,7 +23,14 @@ import {
   Mail,
   FileText,
   Key,
-  Home
+  Home,
+  Phone,
+  MapPin,
+  BookOpen,
+  Users,
+  Briefcase,
+  FileCheck,
+  ExternalLink
 } from 'lucide-react'
 import Loading from '@/components/ui/loading'
 
@@ -41,9 +48,25 @@ interface Application {
   address: string
   city: string
   state: string
+  postalCode?: string
   previousSchool: string
   graduationYear: number
   previousGrade?: number
+  qualificationType?: string
+  entryLevel?: string
+  studyMode?: string
+  academicYear?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  emergencyContactRelationship?: string
+  emergencyContactAddress?: string
+  specialNeeds?: string
+  previousUniversity?: string
+  workExperience?: string
+  motivationStatement?: string
+  resultDocument?: string
+  passportPhoto?: string
+  birthCertificate?: string
   status: 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED'
   adminNotes?: string
   generatedStudentId?: string
@@ -571,8 +594,147 @@ export default function AdminApplicationsPage() {
                       {selectedApplication.previousGrade ? selectedApplication.previousGrade.toFixed(2) : 'Not provided'}
                     </p>
                   </div>
+                  {selectedApplication.academicYear && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Academic Year</label>
+                      <p className="text-gray-900">{selectedApplication.academicYear}</p>
+                    </div>
+                  )}
+                  {selectedApplication.entryLevel && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Entry Level</label>
+                      <p className="text-gray-900">{selectedApplication.entryLevel}</p>
+                    </div>
+                  )}
+                  {selectedApplication.studyMode && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Study Mode</label>
+                      <p className="text-gray-900">{selectedApplication.studyMode}</p>
+                    </div>
+                  )}
+                  {selectedApplication.qualificationType && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Qualification Type</label>
+                      <p className="text-gray-900">{selectedApplication.qualificationType}</p>
+                    </div>
+                  )}
+                  {selectedApplication.previousUniversity && (
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-medium text-gray-600">Previous University</label>
+                      <p className="text-gray-900">{selectedApplication.previousUniversity}</p>
+                    </div>
+                  )}
+                  {selectedApplication.workExperience && (
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-medium text-gray-600">Work Experience</label>
+                      <p className="text-gray-900">{selectedApplication.workExperience}</p>
+                    </div>
+                  )}
+                  {selectedApplication.motivationStatement && (
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-medium text-gray-600">Motivation Statement</label>
+                      <p className="text-gray-900 mt-1">{selectedApplication.motivationStatement}</p>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Emergency Contact */}
+              {(selectedApplication.emergencyContactName || selectedApplication.emergencyContactPhone) && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center">
+                    <Users className="h-5 w-5 mr-2" />
+                    Emergency Contact Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedApplication.emergencyContactName && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Contact Name</label>
+                        <p className="text-gray-900">{selectedApplication.emergencyContactName}</p>
+                      </div>
+                    )}
+                    {selectedApplication.emergencyContactPhone && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Phone Number</label>
+                        <p className="text-gray-900">{selectedApplication.emergencyContactPhone}</p>
+                      </div>
+                    )}
+                    {selectedApplication.emergencyContactRelationship && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Relationship</label>
+                        <p className="text-gray-900">{selectedApplication.emergencyContactRelationship}</p>
+                      </div>
+                    )}
+                    {selectedApplication.emergencyContactAddress && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Address</label>
+                        <p className="text-gray-900">{selectedApplication.emergencyContactAddress}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Special Needs */}
+              {selectedApplication.specialNeeds && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center">
+                    <Briefcase className="h-5 w-5 mr-2" />
+                    Special Needs / Additional Information
+                  </h3>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-gray-900">{selectedApplication.specialNeeds}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Uploaded Documents */}
+              {(selectedApplication.resultDocument || selectedApplication.passportPhoto || selectedApplication.birthCertificate) && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center">
+                    <FileCheck className="h-5 w-5 mr-2" />
+                    Uploaded Documents
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {selectedApplication.resultDocument && (
+                      <a
+                        href={selectedApplication.resultDocument}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-medium">Result Document</span>
+                        <ExternalLink className="h-4 w-4 text-gray-400" />
+                      </a>
+                    )}
+                    {selectedApplication.passportPhoto && (
+                      <a
+                        href={selectedApplication.passportPhoto}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-medium">Passport Photo</span>
+                        <ExternalLink className="h-4 w-4 text-gray-400" />
+                      </a>
+                    )}
+                    {selectedApplication.birthCertificate && (
+                      <a
+                        href={selectedApplication.birthCertificate}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-medium">Birth Certificate</span>
+                        <ExternalLink className="h-4 w-4 text-gray-400" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Application Status */}
               <div>
