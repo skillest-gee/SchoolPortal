@@ -72,6 +72,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const programmeId = searchParams.get('programmeId')
+    
+    // Pagination parameters
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
 
     // Build where clause
     const where: any = {}
@@ -82,19 +87,35 @@ export async function GET(request: NextRequest) {
       where.programmeId = programmeId
     }
 
-    const applications = await prisma.application.findMany({
-      where,
-      include: {
-        programme: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    // Get total count and paginated data
+    const [applications, total] = await Promise.all([
+      prisma.application.findMany({
+        where,
+        include: {
+          programme: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        skip,
+        take: limit
+      }),
+      prisma.application.count({ where })
+    ])
+
+    const totalPages = Math.ceil(total / limit)
 
     return NextResponse.json({
       success: true,
-      data: applications
+      data: applications,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
     })
 
   } catch (error) {
