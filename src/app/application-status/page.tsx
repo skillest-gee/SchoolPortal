@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -59,6 +59,55 @@ export default function ApplicationStatusPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [application, setApplication] = useState<ApplicationStatus | null>(null)
+
+  // Check URL parameters on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const emailParam = params.get('email')
+      const appNumberParam = params.get('applicationNumber')
+      
+      if (emailParam) setEmail(emailParam)
+      if (appNumberParam) setApplicationNumber(appNumberParam)
+      
+      // Auto-search if both parameters are present
+      if (emailParam && appNumberParam) {
+        handleSearchFromParams(emailParam, appNumberParam)
+      }
+    }
+  }, [])
+
+  const handleSearchFromParams = async (emailParam: string, appNumberParam: string) => {
+    try {
+      setLoading(true)
+      setError('')
+      setApplication(null)
+
+      const response = await fetch('/api/applications/status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: emailParam.trim(),
+          applicationNumber: appNumberParam.trim()
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setApplication(data.data)
+      } else {
+        setError(data.error || 'Application not found')
+      }
+    } catch (error) {
+      console.error('Error searching application:', error)
+      setError('Failed to search application. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()

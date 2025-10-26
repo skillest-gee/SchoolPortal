@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { sendEmail } from '@/lib/email-service'
 
 const createApplicationSchema = z.object({
   // Personal Information
@@ -170,6 +171,68 @@ export async function POST(request: NextRequest) {
         programme: true
       }
     })
+
+    // Send confirmation email to student
+    try {
+      const confirmationEmailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            ✓ Application Received!
+          </h1>
+          
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p>Dear <strong>${application.firstName} ${application.lastName}</strong>,</p>
+            
+            <div style="background: #e8f4fd; padding: 15px; border-left: 4px solid #2196F3; margin: 20px 0;">
+              <h3 style="margin-top: 0;">📝 Your Application Has Been Received!</h3>
+              <p>Thank you for applying to our institution. We have successfully received your application and it is now under review.</p>
+            </div>
+
+            <h3>📋 Application Details:</h3>
+            <ul>
+              <li><strong>Application Number:</strong> <span style="color: #2196F3; font-weight: bold;">${application.applicationNumber}</span></li>
+              <li><strong>Programme:</strong> ${application.programme.name}</li>
+              <li><strong>Department:</strong> ${application.programme.department}</li>
+              <li><strong>Academic Year:</strong> ${validatedData.academicYear}</li>
+              <li><strong>Status:</strong> Pending Review</li>
+            </ul>
+
+            <h3>🔍 Track Your Application Status:</h3>
+            <p>You can check the status of your application at any time by visiting:</p>
+            <p style="text-align: center; margin: 20px 0;">
+              <a href="${process.env.NEXTAUTH_URL}/application-status" style="background: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Check Application Status
+              </a>
+            </p>
+            
+            <p>You will need to provide:</p>
+            <ul>
+              <li>Email: ${application.email}</li>
+              <li>Application Number: ${application.applicationNumber}</li>
+            </ul>
+
+            <h3>⏱️ What Happens Next?</h3>
+            <p>Our admissions team will review your application. This process typically takes 5-7 business days. You will receive an email notification once a decision has been made.</p>
+
+            <p>Best regards,<br>
+            <strong>Admissions Team</strong></p>
+          </div>
+        </div>
+      `
+
+      const emailResult = await sendEmail({
+        to: application.email,
+        subject: `Application Received - ${application.applicationNumber}`,
+        html: confirmationEmailHtml,
+        text: confirmationEmailHtml.replace(/<[^>]*>/g, '')
+      })
+
+      if (emailResult.success) {
+        console.log(`✅ Confirmation email sent to ${application.email}`)
+      }
+    } catch (emailError) {
+      console.error('Error sending confirmation email:', emailError)
+    }
 
     return NextResponse.json({
       success: true,

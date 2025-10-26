@@ -167,9 +167,12 @@ export default function ApplicationPage() {
       if (response.ok) {
         const result = await response.json()
         setSuccess('Application submitted successfully! Your application number is: ' + result.data.applicationNumber)
-        // Reset form
-        setUploadedFiles({})
-        // Redirect to success page or show success message
+        // Reset form after showing success
+        setTimeout(() => {
+          setUploadedFiles({})
+          // Redirect to application status page
+          router.push(`/application-status?email=${encodeURIComponent(data.email)}&applicationNumber=${encodeURIComponent(result.data.applicationNumber)}`)
+        }, 2000)
       } else {
         const errorData = await response.json()
         setError(errorData.error || 'Failed to submit application')
