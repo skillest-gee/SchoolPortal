@@ -7,9 +7,9 @@ services:
     container_name: schoolportal_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: schoolportal
-      POSTGRES_USER: schoolportal
-      POSTGRES_PASSWORD: schoolportal_password
+      POSTGRES_DB: ${POSTGRES_DB:-schoolportal}
+      POSTGRES_USER: ${POSTGRES_USER:-schoolportal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
     ports:
       - "5432:5432"
@@ -40,10 +40,14 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://schoolportal:schoolportal_password@postgres:5432/schoolportal?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-schoolportal}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-schoolportal}?schema=public
       - REDIS_URL=redis://redis:6379
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=your-production-secret-key
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
     depends_on:
       - postgres
       - redis

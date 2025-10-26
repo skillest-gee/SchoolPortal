@@ -134,6 +134,16 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.*
+!.env.example
+!.env*.example
+
+# Production secrets
+*.pem
+*.key
+*.crt
+secrets/
+keys/
 
 # next.js build output
 .next
@@ -182,6 +192,19 @@ backups/
 # Uploads
 public/uploads/
 uploads/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env*.example
+
+# Secrets and keys
+*.pem
+*.key
+*.crt
+secrets/
+keys/
 
 # Prisma
 prisma/migrations/
