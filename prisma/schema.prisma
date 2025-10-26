@@ -712,17 +712,7 @@ model Timetable {
   @@map("timetable")
 }
 
-model Programme {
-  @@index([isActive])
-  @@index([code])
-}
-
-model Application {
-  @@index([status])
-  @@index([programmeId])
-  @@index([email])
-  @@index([createdAt])
-}
+// Duplicate models removed - indexes are already in the main model definitions above
 
 // Database indexes for performance optimization
 // These will be created automatically when running migrations
