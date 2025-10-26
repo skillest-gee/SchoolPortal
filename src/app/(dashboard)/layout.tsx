@@ -112,6 +112,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { name: 'Course Registration', href: '/student/course-registration', icon: BookOpen },
         { name: 'Assignments', href: '/student/assignments', icon: FileText },
         { name: 'Grades', href: '/student/grades', icon: TrendingUp },
+        { name: 'Transcript', href: '/student/transcript', icon: FileText },
         { name: 'Attendance', href: '/student/attendance', icon: Users },
         { name: 'Academic Calendar', href: '/student/calendar', icon: Calendar },
         { name: 'Finances', href: '/student/finances', icon: DollarSign },
