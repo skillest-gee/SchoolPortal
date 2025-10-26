@@ -44,7 +44,7 @@ export async function GET(
       success: true,
       data: {
         receiptNumber: `RCP${payment.id.substring(0, 8).toUpperCase()}`,
-        paymentDate: payment.paymentDate,
+        paymentDate: payment.createdAt,
         student: {
           name: payment.fee.student.studentProfile 
             ? `${payment.fee.student.studentProfile.firstName} ${payment.fee.student.studentProfile.lastName}`
@@ -61,8 +61,6 @@ export async function GET(
         feeDetails: {
           type: payment.fee.description,
           amount: payment.fee.amount,
-          academicYear: payment.fee.academicYear,
-          semester: payment.fee.semester
         },
         notes: payment.notes
       }
