@@ -3,6 +3,8 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY || process.env.EMAIL_SERVER_PASSWORD)
 
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@university.edu'
+
 export interface EmailTemplate {
   to: string
   subject: string
@@ -399,7 +401,7 @@ This is an automated message. Please do not reply to this email.
   return { to: data.email, subject, html, text }
 }
 
-// Email sending function using Resend
+// Send email using template object (original Resend implementation)
 export async function sendEmail(template: EmailTemplate): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     console.log('📧 SENDING EMAIL VIA RESEND:')
@@ -407,7 +409,7 @@ export async function sendEmail(template: EmailTemplate): Promise<{ success: boo
     console.log(`   Subject: ${template.subject}`)
     
     const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'noreply@schoolportal.com',
+      from: FROM_EMAIL,
       to: [template.to],
       subject: template.subject,
       html: template.html,
@@ -435,4 +437,10 @@ export async function sendEmail(template: EmailTemplate): Promise<{ success: boo
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }
+}
+
+// Helper function to send email with individual parameters
+export async function sendEmailDirect(to: string, subject: string, html: string, IsraeliLanguage?: string): Promise<boolean> {
+  const result = await sendEmail({ to, subject, html, text: IsraeliLanguage || html.replace(/<[^>]*>/g, '') })
+  return result.success
 }
