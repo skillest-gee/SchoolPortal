@@ -310,37 +310,6 @@ export async function PUT(
       // Create programme-specific fees automatically
       await createProgrammeFees(user.id, application.programme.name)
 
-      // Send admission email with fees and payment instructions
-      const fees = programmeFees[application.programme.name as keyof typeof programmeFees]
-      if (fees) {
-        const admissionEmail = generateAdmissionEmail({
-          studentName: `${application.firstName} ${application.lastName}`,
-          email: application.email,
-          studentId: generatedStudentId,
-          programme: application.programme.name,
-          fees: fees,
-          paymentInstructions: `
-            Payment Methods:
-            • Bank Transfer: Account details will be provided separately
-            • Mobile Money: +1-234-567-8900
-            • Cash Payment: Visit our finance office
-            
-            Payment Reference: ${generatedStudentId}
-            Please include your student ID in all payment references.
-            
-            IMPORTANT: You must pay ALL fees ($${fees.total.toLocaleString()}) before you can access the student portal.
-            Login credentials will only be provided after complete payment.
-          `
-        })
-
-        const emailResult = await sendEmail(admissionEmail)
-        if (emailResult.success) {
-          console.log(`📧 Admission email sent successfully to ${application.email}`)
-        } else {
-          console.error(`❌ Failed to send admission email: ${emailResult.error}`)
-        }
-      }
-
       // Send admission notification (Email/SMS)
       try {
         // Create notification for admin about new admission
@@ -385,6 +354,93 @@ export async function PUT(
         }
       } catch (notificationError) {
         console.error('Error sending notifications:', notificationError)
+      }
+    }
+
+    // Handle rejection - send email to student
+    if (validatedData.status === 'REJECTED') {
+      try {
+        const rejectionEmail = {
+          to: application.email,
+          subject: `Application ${application.applicationNumber} - Update`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h1 style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                Application Update
+              </h1>
+              
+              <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                <p>Dear <strong>${application.firstName} ${application.lastName}</strong>,</p>
+                
+                <p>Thank you for your interest in our institution and for submitting your application (${application.applicationNumber}).</p>
+                
+                <div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">Application Status: Rejected</h3>
+                  <p>After careful consideration, we regret to inform you that your application has not been successful at this time.</p>
+                </div>
+
+                ${validatedData.adminNotes ? `
+                  <h3>Comments from Admissions Committee:</h3>
+                  <div style="background: #e8f4fd; padding: 15px; border-left: 4px solid #2196F3; margin: 20px 0;">
+                    <p style="margin: 0;">${validatedData.adminNotes}</p>
+                  </div>
+                ` : ''}
+
+                <h3>Next Steps:</h3>
+                <ul>
+                  <li>You may reapply in the next application period</li>
+                  <li>Consider reaching out to our admissions office for feedback</li>
+                  <li>Review the admission requirements on our website</li>
+                </ul>
+
+                <p>If you have any questions, please don't hesitate to contact our admissions office:</p>
+                <ul>
+                  <li>Email: <a href="mailto:admissions@university.edu">admissions@university.edu</a></li>
+                  <li>Phone: +1-234-567-8900</li>
+                </ul>
+
+                <p>Thank you again for your interest in our institution. We wish you the best in your academic pursuits.</p>
+
+                <p>Best regards,<br>
+                <strong>Admissions Committee</strong><br>
+                ${process.env.UNIVERSITY_NAME || 'University'}</p>
+              </div>
+            </div>
+          `,
+          text: `
+Application Update - ${application.applicationNumber}
+
+Dear ${application.firstName} ${application.lastName},
+
+Thank you for your interest in our institution.
+
+Application Status: Rejected
+
+After careful consideration, we regret to inform you that your application has not been successful at this time.
+
+${validatedData.adminNotes ? `Comments: ${validatedData.adminNotes}` : ''}
+
+Next Steps:
+- You may reapply in the next application period
+- Consider reaching out for feedback
+- Review admission requirements
+
+Contact: admissions@university.edu
+
+Best regards,
+Admissions Committee
+          `
+        }
+
+        const emailResult = await sendEmail(rejectionEmail)
+        
+        if (emailResult.success) {
+          console.log(`✅ Rejection email sent successfully to ${application.email}`)
+        } else {
+          console.error('Failed to send rejection email:', emailResult.error)
+        }
+      } catch (emailError) {
+        console.error('Error sending rejection email:', emailError)
       }
     }
 
