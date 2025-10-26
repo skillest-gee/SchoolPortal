@@ -59,6 +59,7 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
         { name: 'Course Registration', href: '/student/course-registration', icon: BookOpen },
         { name: 'Assignments', href: '/student/assignments', icon: FileText },
         { name: 'Grades', href: '/student/grades', icon: TrendingUp },
+        { name: 'Transcript', href: '/student/transcript', icon: FileText },
         { name: 'Attendance', href: '/student/attendance', icon: Users },
         { name: 'Academic Calendar', href: '/student/calendar', icon: Clock },
         { name: 'Finances', href: '/student/finances', icon: DollarSign },
