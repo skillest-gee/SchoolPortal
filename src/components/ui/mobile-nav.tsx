@@ -61,7 +61,7 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
         { name: 'Grades', href: '/student/grades', icon: TrendingUp },
         { name: 'Attendance', href: '/student/attendance', icon: Users },
         { name: 'Academic Calendar', href: '/student/calendar', icon: Clock },
-        { name: 'Finance Portal', href: '/student/finance', icon: DollarSign },
+        { name: 'Finances', href: '/student/finances', icon: DollarSign },
         { name: 'Self-Service', href: '/self-service', icon: Award },
       ]
         } else if (userRole === 'LECTURER') {
