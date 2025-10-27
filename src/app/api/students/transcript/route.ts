@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
           courseTitle: record.course.title,
           credits: record.course.credits,
           grade: record.grade !== null ? record.grade : 'N/A',
-          letterGrade: record.grade !== null ? getLetterGrade(record.grade) : 'N/A',
+          letterGrade: record.grade !== null ? getLetterGrade(typeof record.grade === 'string' ? parseFloat(record.grade) : record.grade) : 'N/A',
           semester: record.semester,
           academicYear: record.academicYear,
           status: record.status
