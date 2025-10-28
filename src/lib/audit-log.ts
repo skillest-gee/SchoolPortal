@@ -61,8 +61,8 @@ export async function logUserAction(
   details?: any,
   request?: NextRequest
 ): Promise<void> {
-  const requestInfo = request ? getRequestInfo(request) : { ipAddress: null, userAgent: null }
-  
+  const requestInfo = request ? getRequestInfo(request) : { ipAddress: undefined, userAgent: undefined }
+
   await logActivity({
     userId,
     action,
