@@ -37,15 +37,15 @@ export async function logActivity(data: AuditLogData): Promise<void> {
  * Get IP address and user agent from request
  */
 export function getRequestInfo(request: NextRequest): {
-  ipAddress: string | null
-  userAgent: string | null
+  ipAddress: string | undefined
+  userAgent: string | undefined
 } {
   const ipAddress = 
     request.headers.get('x-forwarded-for')?.split(',')[0] ||
     request.headers.get('x-real-ip') ||
-    null
+    undefined
   
-  const userAgent = request.headers.get('user-agent') || null
+  const userAgent = request.headers.get('user-agent') || undefined
 
   return { ipAddress, userAgent }
 }
