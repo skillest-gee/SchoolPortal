@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function PUT(
+// GET: Fetch a single message by ID
+export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -17,31 +18,9 @@ export async function PUT(
       )
     }
 
-    // Check if message exists and user is the recipient
+    // Get message and verify user has access (must be sender or recipient)
     const message = await prisma.message.findUnique({
-      where: { id: params.id }
-    })
-
-    if (!message) {
-      return NextResponse.json(
-        { error: 'Message not found' },
-        { status: 404 }
-      )
-    }
-
-    if (message.recipientId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      )
-    }
-
-    // Mark message as read
-    const updatedMessage = await prisma.message.update({
       where: { id: params.id },
-      data: {
-        isRead: true
-      },
       include: {
         sender: {
           include: {
@@ -58,13 +37,27 @@ export async function PUT(
       }
     })
 
+    if (!message) {
+      return NextResponse.json(
+        { error: 'Message not found' },
+        { status: 404 }
+      )
+    }
+
+    // Verify user is either sender or recipient
+    if (message.senderId !== session.user.id && message.recipientId !== session.user.id) {
+      return NextResponse.json(
+        { error: 'Access denied' },
+        { status: 403 }
+      )
+    }
+
     return NextResponse.json({
       success: true,
-      data: updatedMessage,
-      message: 'Message marked as read'
+      data: message
     })
   } catch (error) {
-    console.error('Error marking message as read:', error)
+    console.error('Error fetching message:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -72,10 +65,3 @@ export async function PUT(
   }
 }
 
-// Also support PATCH for compatibility
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  return PUT(request, { params })
-}

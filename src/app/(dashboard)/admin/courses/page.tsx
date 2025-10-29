@@ -262,13 +262,55 @@ export default function AdminCoursesPage() {
         throw new Error(result.error || 'Failed to update course')
       }
 
+      // Optimistically update the course in the local state immediately
+      if (result.success && result.data) {
+        const updatedCourse = result.data
+        
+        // Use lecturer from response if available, otherwise find from lecturers list
+        let lecturerDetails = updatedCourse.lecturer
+        if (!lecturerDetails && updatedCourse.lecturerId && lecturers.length > 0) {
+          lecturerDetails = lecturers.find(l => l.id === updatedCourse.lecturerId)
+        }
+
+        // Immediately update the courses array with the new data
+        setCourses(prevCourses => 
+          prevCourses.map(course => {
+            if (course.id === editingCourse.id) {
+              return {
+                ...course,
+                code: updatedCourse.code || course.code,
+                title: updatedCourse.title || course.title,
+                description: updatedCourse.description || course.description,
+                credits: updatedCourse.credits || course.credits,
+                department: updatedCourse.department || course.department,
+                level: updatedCourse.level || course.level,
+                semester: updatedCourse.semester || course.semester,
+                academicYear: updatedCourse.academicYear || course.academicYear,
+                lecturer: lecturerDetails || course.lecturer,
+                lecturerId: updatedCourse.lecturerId || course.lecturerId,
+                isActive: updatedCourse.isActive !== undefined ? updatedCourse.isActive : course.isActive,
+                _count: updatedCourse._count || course._count
+              }
+            }
+            return course
+          })
+        )
+      }
+
       showSuccess('Course updated successfully!')
       setEditingCourse(null)
-      await fetchCourses()
+      reset()
+      
+      // Also refresh from server in background to ensure full consistency
+      fetchCourses().catch(err => {
+        console.error('Background refresh failed:', err)
+      })
 
     } catch (error) {
       console.error('Error updating course:', error)
       showError(error instanceof Error ? error.message : 'Failed to update course')
+      // Reload courses on error to ensure consistency
+      await fetchCourses()
     } finally {
       setUpdating(false)
     }

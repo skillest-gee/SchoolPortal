@@ -8,29 +8,31 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || session.user.role !== 'STUDENT') {
+    if (!session || !session.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const studentId = session.user.id
+    const currentUserId = session.user.id
 
-    // Get all messages where the student is either sender or recipient
+    // Get all messages where the current user is either sender or recipient
     const messages = await prisma.message.findMany({
       where: {
         OR: [
-          { senderId: studentId },
-          { recipientId: studentId }
+          { senderId: currentUserId },
+          { recipientId: currentUserId }
         ]
       },
       include: {
         sender: {
           include: {
-            studentProfile: true
+            studentProfile: true,
+            lecturerProfile: true
           }
         },
         recipient: {
           include: {
-            studentProfile: true
+            studentProfile: true,
+            lecturerProfile: true
           }
         }
       },
@@ -39,25 +41,29 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Group messages by conversation (other student)
+    // Group messages by conversation (other user)
     const conversations = new Map()
 
     messages.forEach(message => {
       // Determine the other participant in the conversation
-      const otherUserId = message.senderId === studentId ? message.recipientId : message.senderId
-      const otherUser = message.senderId === studentId ? message.recipient : message.sender
+      const otherUserId = message.senderId === currentUserId ? message.recipientId : message.senderId
+      const otherUser = message.senderId === currentUserId ? message.recipient : message.sender
 
       if (!conversations.has(otherUserId)) {
         conversations.set(otherUserId, {
           userId: otherUserId,
           name: otherUser.name,
+          email: otherUser.email,
+          role: otherUser.role,
           studentId: otherUser.studentProfile?.studentId,
+          staffId: otherUser.lecturerProfile?.staffId,
           profileImage: otherUser.image,
           profile: {
             firstName: otherUser.studentProfile?.firstName,
             surname: otherUser.studentProfile?.surname,
             programme: otherUser.studentProfile?.programme,
-            yearOfStudy: otherUser.studentProfile?.yearOfStudy
+            yearOfStudy: otherUser.studentProfile?.yearOfStudy,
+            department: otherUser.lecturerProfile?.department
           },
           lastMessage: null,
           unreadCount: 0,
@@ -72,7 +78,8 @@ export async function GET(request: NextRequest) {
         conversation.lastMessage = {
           id: message.id,
           content: message.content,
-          isFromMe: message.senderId === studentId,
+          subject: message.subject,
+          isFromMe: message.senderId === currentUserId,
           createdAt: message.createdAt
         }
         conversation.lastMessageTime = message.createdAt

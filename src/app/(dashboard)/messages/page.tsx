@@ -9,6 +9,7 @@ import { useMessages } from '@/contexts/MessagesContext'
 type Message = {
   id: string
   content: string
+  subject?: string
   senderId: string
   recipientId: string
   isRead: boolean
@@ -83,9 +84,64 @@ export default function MessagesPage() {
     return null
   }
 
-  const { markMessageAsRead, messages = [], setMessages } = useMessages()
-  
-  const filteredMessages = (messages || []).filter(message => {
+  const [allMessages, setAllMessages] = useState<Message[]>([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
+
+  useEffect(() => {
+    const fetchMessages = async (silent = false) => {
+      if (!session?.user?.id) return
+      
+      try {
+        if (!silent) setLoadingMessages(true)
+        // Fetch all messages (both sent and received) so we can filter client-side
+        const response = await fetch(`/api/messages?limit=100`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            // Transform API messages to the format expected by the UI
+            const transformed: Message[] = data.data.map((msg: any) => ({
+              id: msg.id,
+              content: msg.content,
+              subject: msg.subject,
+              senderId: msg.senderId,
+              recipientId: msg.recipientId,
+              isRead: msg.isRead,
+              createdAt: msg.createdAt,
+              sender: {
+                id: msg.sender.id,
+                name: msg.sender.name,
+                studentId: msg.sender.studentProfile?.studentId
+              }
+            }))
+            setAllMessages(transformed)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching messages:', error)
+      } finally {
+        if (!silent) setLoadingMessages(false)
+      }
+    }
+
+    if (session) {
+      fetchMessages(false)
+      // Poll for new messages every 5 seconds (silent updates)
+      const interval = setInterval(() => fetchMessages(true), 5000)
+      return () => clearInterval(interval)
+    }
+  }, [session])
+
+  // Filter messages based on inbox/sent selection
+  const typeFilteredMessages = allMessages.filter(message => {
+    if (selectedType === 'inbox') {
+      return message.recipientId === session?.user?.id
+    } else {
+      return message.senderId === session?.user?.id
+    }
+  })
+
+  // Then filter by search term
+  const filteredMessages = typeFilteredMessages.filter(message => {
     const matchesSearch = message.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          message.sender.name.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesSearch
@@ -101,20 +157,30 @@ export default function MessagesPage() {
     })
   }
 
-  const markAsRead = (messageId: string) => {
-    markMessageAsRead(messageId)
+  const markAsRead = async (messageId: string) => {
+    try {
+      const response = await fetch(`/api/messages/${messageId}/read`, {
+        method: 'PATCH'
+      })
+      if (response.ok) {
+        setAllMessages(prev => prev.map(msg => 
+          msg.id === messageId ? { ...msg, isRead: true } : msg
+        ))
+      }
+    } catch (error) {
+      console.error('Error marking message as read:', error)
+    }
   }
 
   const toggleStar = (messageId: string) => {
-    const updatedMessages = (messages || []).map(msg =>
+    setAllMessages(prev => prev.map(msg =>
       msg.id === messageId ? { ...msg, isStarred: !(msg as any).isStarred } : msg
-    )
-    setMessages(updatedMessages)
+    ))
   }
 
-  const inboxCount = (messages || []).length
-  const unreadCount = (messages || []).filter(m => !m.isRead).length
-  const sentCount = 0 // Messages context doesn't track sent messages
+  const inboxMessages = allMessages.filter(m => m.recipientId === session?.user?.id)
+  const sentMessages = allMessages.filter(m => m.senderId === session?.user?.id)
+  const unreadCount = inboxMessages.filter(m => !m.isRead).length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -129,7 +195,10 @@ export default function MessagesPage() {
               </h1>
               <p className="text-gray-600 mt-1">Communicate with students, lecturers, and administrators</p>
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => router.push('/messages/compose')}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Compose Message
             </Button>
@@ -148,7 +217,7 @@ export default function MessagesPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Inbox</p>
-                  <p className="text-2xl font-bold text-gray-900">{inboxCount}</p>
+                  <p className="text-2xl font-bold text-gray-900">{inboxMessages.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -230,7 +299,12 @@ export default function MessagesPage() {
 
                 {/* Message List */}
                 <div className="max-h-96 overflow-y-auto">
-                  {filteredMessages.map((message) => (
+                  {loadingMessages ? (
+                    <div className="p-4 text-center text-gray-500">Loading messages...</div>
+                  ) : filteredMessages.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">No messages found</div>
+                  ) : (
+                    filteredMessages.map((message) => (
                     <div
                       key={message.id}
                       className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
@@ -245,12 +319,17 @@ export default function MessagesPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2">
                             <h3 className={`text-sm font-medium truncate ${!message.isRead ? 'font-bold' : ''}`}>
-                              Message from {message.sender.name}
+                              {message.subject || `Message from ${message.sender.name}`}
                             </h3>
                           </div>
                           <p className="text-xs text-gray-500 truncate">
-                            {message.sender.name}
+                            From: {message.sender.name}
                           </p>
+                          {message.content && (
+                            <p className="text-xs text-gray-400 truncate mt-1">
+                              {message.content.substring(0, 60)}...
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center space-x-1">
                           {!message.isRead && (
@@ -271,7 +350,8 @@ export default function MessagesPage() {
                         {formatDate(message.createdAt)}
                       </p>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -284,11 +364,13 @@ export default function MessagesPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg">Message from {selectedMessage.sender.name}</CardTitle>
+                      <CardTitle className="text-lg">
+                        {selectedMessage.subject || `Message from ${selectedMessage.sender.name}`}
+                      </CardTitle>
                       <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                         <div className="flex items-center">
                           <User className="h-4 w-4 mr-1" />
-                          {selectedMessage.sender.name}
+                          From: {selectedMessage.sender.name}
                         </div>
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 mr-1" />
@@ -297,7 +379,11 @@ export default function MessagesPage() {
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => router.push(`/messages/compose?reply=${selectedMessage.id}`)}
+                      >
                         <Reply className="h-4 w-4 mr-1" />
                         Reply
                       </Button>

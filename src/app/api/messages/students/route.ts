@@ -8,9 +8,13 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || session.user.role !== 'STUDENT') {
+    if (!session || !session.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    
+    // Allow all roles to see students (for messaging purposes)
+    // For students: see other students
+    // For lecturers/admin: see students for messaging
 
     // Get all students except the current user
     const students = await prisma.user.findMany({

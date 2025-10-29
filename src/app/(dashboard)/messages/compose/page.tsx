@@ -82,8 +82,47 @@ export default function ComposeMessagePage() {
       return
     }
 
-    fetchUsers()
+    fetchUsers().then(() => {
+      // Handle reply after users are loaded
+      if (typeof window !== 'undefined') {
+        const searchParams = new URLSearchParams(window.location.search)
+        const replyId = searchParams.get('reply')
+        
+        if (replyId) {
+          handleReply(replyId)
+        }
+      }
+    })
   }, [session, status, router])
+
+  const handleReply = async (replyId: string) => {
+    try {
+      const response = await fetch(`/api/messages/${replyId}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          const originalMessage = data.data
+          // Determine who to reply to (if I'm the recipient, reply to sender)
+          const replyToId = originalMessage.recipientId === session?.user.id 
+            ? originalMessage.senderId 
+            : originalMessage.recipientId
+          
+          // Pre-fill recipient
+          setValue('recipientId', replyToId)
+          // Pre-fill subject with "Re:" prefix
+          const subject = originalMessage.subject?.startsWith('Re:') 
+            ? originalMessage.subject 
+            : `Re: ${originalMessage.subject || 'Message'}`
+          setValue('subject', subject)
+          // Pre-fill content with original message quoted
+          const replyContent = `\n\n--- Original Message from ${originalMessage.sender.name} ---\n${originalMessage.content}`
+          setValue('content', replyContent)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading reply message:', error)
+    }
+  }
 
   useEffect(() => {
     // Filter users based on search term
@@ -104,16 +143,74 @@ export default function ComposeMessagePage() {
     try {
       setLoading(true)
       setError('')
+      const allUsers: User[] = []
 
-      const response = await fetch('/api/admin/users')
-      const data = await response.json()
+      // Try admin endpoint first (works for admin users)
+      try {
+        const response = await fetch('/api/admin/users')
+        const data = await response.json()
 
-      if (data.success) {
-        // Filter out current user
-        const otherUsers = data.data.filter((user: User) => user.id !== session?.user.id)
-        setUsers(otherUsers)
-        setFilteredUsers(otherUsers)
+        if (response.ok && data.success && data.data) {
+          // Handle both single user object and array format
+          const usersList = Array.isArray(data.data) ? data.data : data.data.users || []
+          allUsers.push(...usersList)
+        }
+      } catch (err) {
+        // Admin endpoint may fail for non-admin users, continue to other sources
+        console.log('Admin users endpoint not available, trying alternatives...')
       }
+
+      // Fetch conversations to get users they've messaged with
+      try {
+        const convResponse = await fetch('/api/messages/conversations')
+        const convData = await convResponse.json()
+        
+        if (convData.success && convData.data) {
+          // Convert conversations to user list
+          const usersFromConvs = convData.data.map((conv: any) => ({
+            id: conv.userId,
+            name: conv.name,
+            email: conv.email || '',
+            role: conv.role || 'STUDENT',
+            studentProfile: conv.studentId ? { studentId: conv.studentId } : undefined,
+            lecturerProfile: conv.staffId ? { staffId: conv.staffId } : undefined
+          }))
+          allUsers.push(...usersFromConvs)
+        }
+      } catch (err) {
+        console.log('Conversations endpoint failed')
+      }
+
+      // For students, get all other students
+      if (session?.user.role === 'STUDENT') {
+        try {
+          const studentsResponse = await fetch('/api/messages/students')
+          const studentsData = await studentsResponse.json()
+          if (studentsData.success && studentsData.data) {
+            allUsers.push(...studentsData.data.map((user: any) => ({
+              id: user.id,
+              name: user.name,
+              email: user.email || '',
+              role: 'STUDENT',
+              studentProfile: user.studentId ? { studentId: user.studentId } : undefined
+            })))
+          }
+        } catch (err) {
+          console.log('Students endpoint failed')
+        }
+      }
+
+      // Remove duplicates and current user, keep unique users by ID
+      const uniqueUsersMap = new Map<string, User>()
+      allUsers.forEach((user: User) => {
+        if (user.id !== session?.user.id && !uniqueUsersMap.has(user.id)) {
+          uniqueUsersMap.set(user.id, user)
+        }
+      })
+      
+      const uniqueUsers = Array.from(uniqueUsersMap.values())
+      setUsers(uniqueUsers)
+      setFilteredUsers(uniqueUsers)
 
     } catch (error) {
       console.error('Error fetching users:', error)

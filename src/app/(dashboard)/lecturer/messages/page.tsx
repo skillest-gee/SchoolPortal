@@ -50,12 +50,16 @@ export default function LecturerMessagesPage() {
       return
     }
 
-    loadMessages()
+    loadMessages(true)
+    
+    // Poll for new messages every 5 seconds (silent updates)
+    const interval = setInterval(() => loadMessages(false), 5000)
+    return () => clearInterval(interval)
   }, [session, status, router])
 
-  const loadMessages = async () => {
+  const loadMessages = async (showLoading = true) => {
     try {
-      setLoading(true)
+      if (showLoading) setLoading(true)
       setError('')
       
       const response = await fetch('/api/messages')
@@ -64,16 +68,16 @@ export default function LecturerMessagesPage() {
         if (data.success) {
           setMessages(data.data || [])
         } else {
-          setError('Failed to load messages')
+          if (showLoading) setError('Failed to load messages')
         }
       } else {
-        setError('Failed to load messages')
+        if (showLoading) setError('Failed to load messages')
       }
     } catch (error) {
       console.error('Error loading messages:', error)
-      setError('Failed to load messages')
+      if (showLoading) setError('Failed to load messages')
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 

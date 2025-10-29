@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
@@ -100,7 +100,9 @@ export default function AnnouncementsManagement() {
     fetchAnnouncements()
   }, [session, status, router])
 
-  const fetchAnnouncements = async () => {
+  const fetchAnnouncements = useCallback(async () => {
+    if (!session || session.user?.role !== 'ADMIN') return
+    
     try {
       setLoading(true)
       const params = new URLSearchParams()
@@ -120,11 +122,12 @@ export default function AnnouncementsManagement() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [typeFilter, priorityFilter, audienceFilter, statusFilter, searchQuery, session])
 
   useEffect(() => {
+    if (!session || session.user?.role !== 'ADMIN') return
     fetchAnnouncements()
-  }, [typeFilter, priorityFilter, audienceFilter, statusFilter, searchQuery])
+  }, [fetchAnnouncements])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

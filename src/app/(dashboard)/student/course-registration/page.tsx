@@ -142,6 +142,7 @@ export default function CourseRegistrationPage() {
   const courses = registrationData?.courses || []
   const registrationStatus = registrationData?.registrationStatus || 'CLOSED'
   const canRegister = registrationData?.canRegister || false
+  const registrationMessage = registrationData?.registrationMessage || ''
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -163,7 +164,7 @@ export default function CourseRegistrationPage() {
             </div>
           </div>
 
-          {/* Registration Status */}
+          {/* Registration Status Messages */}
           {registrationStatus === 'COMPLETED' && (
             <Card className="mb-6 border-green-200 bg-green-50">
               <CardContent className="p-6">
@@ -177,6 +178,42 @@ export default function CourseRegistrationPage() {
                     <Printer className="h-4 w-4 mr-2" />
                     Print Registration
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {registrationStatus === 'CLOSED' && registrationMessage && (
+            <Card className="mb-6 border-yellow-200 bg-yellow-50">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <AlertCircle className="h-6 w-6 text-yellow-600" />
+                  <div>
+                    <h3 className="font-medium text-yellow-900">Registration Closed</h3>
+                    <p className="text-yellow-700">{registrationMessage}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {registrationStatus === 'FEES_OUTSTANDING' && (
+            <Card className="mb-6 border-red-200 bg-red-50">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                  <div>
+                    <h3 className="font-medium text-red-900">Outstanding Fees</h3>
+                    <p className="text-red-700">{registrationMessage}</p>
+                    <Button 
+                      onClick={() => router.push('/student/fees')} 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                    >
+                      Pay Fees
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

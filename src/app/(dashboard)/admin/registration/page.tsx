@@ -86,13 +86,15 @@ export default function CourseRegistrationManagement() {
   const [statusFilter, setStatusFilter] = useState('')
 
   useEffect(() => {
-    if (session?.user?.role !== 'admin') {
+    if (status === 'loading') return
+    
+    if (!session || session.user?.role !== 'ADMIN') {
       router.push('/auth/login')
       return
     }
     fetchPeriods()
     fetchRegistrationStatus()
-  }, [session, router])
+  }, [session, status, router])
 
   const fetchRegistrationStatus = async () => {
     try {
