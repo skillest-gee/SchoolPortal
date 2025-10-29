@@ -111,17 +111,52 @@ export default function ApplicationPage() {
   const handleFileUpload = async (file: File, type: 'resultDocument' | 'passportPhoto' | 'birthCertificate') => {
     setUploading(true)
     setError('')
+    setSuccess('')
+    
     try {
+      // Validate file size (50MB max)
+      const MAX_SIZE = 50 * 1024 * 1024
+      if (file.size > MAX_SIZE) {
+        setError(`File size exceeds ${MAX_SIZE / (1024 * 1024)}MB limit`)
+        setUploading(false)
+        return
+      }
+
       const formData = new FormData()
       formData.append('file', file)
       formData.append('type', type)
+      formData.append('userId', 'anonymous') // Application doesn't have user ID yet
 
-      console.log('Uploading file:', file.name, 'Type:', type)
+      console.log('Uploading file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        uploadType: type
+      })
 
-      const response = await fetch('/api/upload-s3', {
+      // Try upload-application endpoint first (more permissive for applications)
+      let response = await fetch('/api/upload-application', {
         method: 'POST',
         body: formData
       })
+
+      // If that fails, try upload-s3 as fallback
+      if (!response.ok) {
+        console.log('upload-application failed, trying upload-s3...')
+        response = await fetch('/api/upload-s3', {
+          method: 'POST',
+          body: formData
+        })
+      }
+
+      // If that also fails, try simple upload
+      if (!response.ok) {
+        console.log('upload-s3 failed, trying upload-simple...')
+        response = await fetch('/api/upload-simple', {
+          method: 'POST',
+          body: formData
+        })
+      }
 
       const data = await response.json()
       console.log('Upload response:', data)
@@ -129,11 +164,13 @@ export default function ApplicationPage() {
       if (response.ok && data.success) {
         setUploadedFiles(prev => ({
           ...prev,
-          [type]: data.filePath
+          [type]: data.filePath || data.fileId || data.fileName
         }))
         setSuccess(`${type.replace(/([A-Z])/g, ' $1').toLowerCase()} uploaded successfully`)
       } else {
-        setError(data.error || 'Failed to upload file')
+        const errorMsg = data.error || data.details || 'Failed to upload file'
+        console.error('Upload error:', errorMsg, data)
+        setError(errorMsg)
       }
     } catch (error) {
       console.error('Error uploading file:', error)

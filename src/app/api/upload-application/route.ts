@@ -29,27 +29,44 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Convert file to buffer and upload to S3
+    // Convert file to buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     
     const uploadUserId = userId || 'anonymous'
     const s3FileName = generateS3FileName(file.name, uploadUserId, type || 'document')
     
-    console.log('Uploading application file to S3:', {
+    console.log('Uploading application file:', {
       fileName: s3FileName,
       contentType: file.type,
-      size: file.size
+      size: file.size,
+      hasS3Credentials: !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY)
     })
 
-    const s3Key = await uploadFileToS3(
-      buffer,
-      s3FileName,
-      file.type || 'application/octet-stream',
-      getFileCategory(file.name, file.type)
-    )
+    let s3Key: string | null = null
+    
+    // Try to upload to S3 if credentials are available
+    try {
+      if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_S3_BUCKET_NAME) {
+        s3Key = await uploadFileToS3(
+          buffer,
+          s3FileName,
+          file.type || 'application/octet-stream',
+          getFileCategory(file.name, file.type)
+        )
+        console.log('File uploaded to S3 successfully:', s3Key)
+      } else {
+        console.warn('S3 credentials not configured, storing file in database as base64')
+      }
+    } catch (s3Error) {
+      console.warn('S3 upload failed, using database fallback:', s3Error)
+      // Continue with database storage if S3 fails
+    }
 
     // Store file metadata in database
+    // If S3 is not configured, store file data in base64 as fallback
+    const fileData = !s3Key ? buffer.toString('base64') : undefined
+    
     const uploadedFile = await prisma.uploadedFile.create({
       data: {
         fileName: s3FileName,
@@ -57,9 +74,10 @@ export async function POST(request: NextRequest) {
         fileType: file.type || 'application/octet-stream',
         fileSize: file.size,
         s3Key: s3Key,
-        s3Bucket: process.env.AWS_S3_BUCKET_NAME || 'school-portal-files',
+        s3Bucket: process.env.AWS_S3_BUCKET_NAME || null,
         uploadedBy: uploadUserId,
-        category: type || 'document'
+        category: type || 'document',
+        fileData: fileData // Store base64 if S3 not available
       }
     })
 
