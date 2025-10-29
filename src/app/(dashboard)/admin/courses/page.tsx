@@ -28,8 +28,11 @@ import {
   GraduationCap,
   CheckCircle,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Download
 } from 'lucide-react'
+import { exportCoursesToCSV } from '@/lib/csv-export'
+import { showSuccess, showError } from '@/lib/toast'
 
 const createCourseSchema = z.object({
   code: z.string().min(1, 'Course code is required'),
@@ -161,7 +164,7 @@ export default function AdminCoursesPage() {
 
     } catch (error) {
       console.error('Error fetching courses:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load courses')
+      showError(error instanceof Error ? error.message : 'Failed to load courses')
     } finally {
       setLoading(false)
     }
@@ -200,14 +203,14 @@ export default function AdminCoursesPage() {
         throw new Error(result.error || 'Failed to create course')
       }
 
-      setSuccess('Course created successfully!')
+      showSuccess('Course created successfully!')
       reset()
       setShowCreateForm(false)
       await fetchCourses()
 
     } catch (error) {
       console.error('Error creating course:', error)
-      setError(error instanceof Error ? error.message : 'Failed to create course')
+      showError(error instanceof Error ? error.message : 'Failed to create course')
     } finally {
       setCreating(false)
     }
@@ -225,13 +228,13 @@ export default function AdminCoursesPage() {
 
       if (response.ok) {
         await fetchCourses()
-        setSuccess(`Course ${isActive ? 'activated' : 'deactivated'} successfully!`)
+        showSuccess(`Course ${isActive ? 'activated' : 'deactivated'} successfully!`)
       } else {
         const errorData = await response.json()
-        setError(errorData.error || 'Failed to update course status')
+        showError(errorData.error || 'Failed to update course status')
       }
     } catch (error) {
-      setError('Error updating course status')
+      showError('Error updating course status')
     }
   }
 
@@ -390,6 +393,20 @@ export default function AdminCoursesPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Button 
+                  onClick={() => {
+                    try {
+                      exportCoursesToCSV(filteredCourses)
+                      showSuccess('Courses exported successfully!')
+                    } catch (error) {
+                      showError('Failed to export courses')
+                    }
+                  }} 
+                  variant="outline"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export CSV
+                </Button>
               </div>
             </div>
           </CardContent>

@@ -20,6 +20,9 @@ import {
   CreditCard
 } from 'lucide-react'
 import Loading from '@/components/ui/loading'
+import { exportFeesToCSV } from '@/lib/csv-export'
+import { showSuccess, showError } from '@/lib/toast'
+import { Download } from 'lucide-react'
 
 interface Student {
   id: string
@@ -114,7 +117,7 @@ export default function AdminFeeManagement() {
 
   const handleCreateFee = async () => {
     if (!selectedStudent || !feeForm.type || !feeForm.description || !feeForm.amount) {
-      setError('Please fill in all required fields')
+      showError('Please fill in all required fields')
       return
     }
 
@@ -141,7 +144,7 @@ export default function AdminFeeManagement() {
       const data = await response.json()
 
       if (data.success) {
-        setSuccess('Fee created successfully!')
+        showSuccess('Fee created successfully!')
         setFeeForm({
           type: '',
           description: '',
@@ -152,10 +155,10 @@ export default function AdminFeeManagement() {
         fetchStudentFees(selectedStudent)
         setTimeout(() => setSuccess(''), 3000)
       } else {
-        setError(data.error || 'Failed to create fee')
+        showError(data.error || 'Failed to create fee')
       }
     } catch (error) {
-      setError('Failed to create fee')
+      showError('Failed to create fee')
     } finally {
       setCreatingFee(false)
     }
@@ -179,13 +182,13 @@ export default function AdminFeeManagement() {
       const data = await response.json()
 
       if (data.success) {
-        setSuccess('Course registration opened successfully!')
+        showSuccess('Course registration opened successfully!')
         setTimeout(() => setSuccess(''), 3000)
       } else {
-        setError(data.error || 'Failed to open registration')
+        showError(data.error || 'Failed to open registration')
       }
     } catch (error) {
-      setError('Failed to open registration')
+      showError('Failed to open registration')
     }
   }
 
@@ -352,10 +355,35 @@ export default function AdminFeeManagement() {
           {/* Student Fees */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <DollarSign className="h-5 w-5 mr-2" />
-                Student Fees
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center">
+                    <DollarSign className="h-5 w-5 mr-2" />
+                    Student Fees
+                  </CardTitle>
+                </div>
+                {studentFees.length > 0 && (
+                  <Button
+                    onClick={() => {
+                      try {
+                        const feesWithStudent = studentFees.map(fee => ({
+                          ...fee,
+                          student: selectedStudentData
+                        }))
+                        exportFeesToCSV(feesWithStudent)
+                        showSuccess('Fees exported successfully!')
+                      } catch (error) {
+                        showError('Failed to export fees')
+                      }
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </Button>
+                )}
+              </div>
               <CardDescription>
                 {selectedStudentData ? `Fees for ${selectedStudentData.name}` : 'Select a student to view their fees'}
               </CardDescription>

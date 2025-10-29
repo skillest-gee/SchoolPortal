@@ -18,6 +18,8 @@ import {
   Edit, Trash2, MoreVertical, Shield, ShieldOff, Mail, Phone, MapPin, Calendar,
   AlertTriangle, Search, Filter, Download, Upload, RefreshCw, BarChart3
 } from 'lucide-react'
+import { exportStudentsToCSV } from '@/lib/csv-export'
+import { showSuccess, showError } from '@/lib/toast'
 
 const createUserSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -209,8 +211,6 @@ export default function AdminUsersPage() {
   const createUser = async (data: CreateUserFormData) => {
     try {
       setCreating(true)
-      setError('')
-      setSuccess('')
 
       const response = await fetch('/api/admin/users', {
         method: 'POST',
@@ -226,14 +226,14 @@ export default function AdminUsersPage() {
         throw new Error(result.error || 'Failed to create user')
       }
 
-      setSuccess('User created successfully!')
+      showSuccess('User created successfully!')
       reset()
       setShowCreateForm(false)
       await fetchUsers()
 
     } catch (error) {
       console.error('Error creating user:', error)
-      setError(error instanceof Error ? error.message : 'Failed to create user')
+      showError(error instanceof Error ? error.message : 'Failed to create user')
     } finally {
       setCreating(false)
     }
@@ -244,8 +244,6 @@ export default function AdminUsersPage() {
 
     try {
       setCreating(true)
-      setError('')
-      setSuccess('')
 
       const response = await fetch(`/api/admin/users/${editingUser.id}`, {
         method: 'PUT',
@@ -261,7 +259,7 @@ export default function AdminUsersPage() {
         throw new Error(result.error || 'Failed to update user')
       }
 
-      setSuccess('User updated successfully!')
+      showSuccess('User updated successfully!')
       resetEdit()
       setShowEditForm(false)
       setEditingUser(null)
@@ -269,7 +267,7 @@ export default function AdminUsersPage() {
 
     } catch (error) {
       console.error('Error updating user:', error)
-      setError(error instanceof Error ? error.message : 'Failed to update user')
+      showError(error instanceof Error ? error.message : 'Failed to update user')
     } finally {
       setCreating(false)
     }
@@ -278,8 +276,6 @@ export default function AdminUsersPage() {
   const deleteUser = async (userId: string) => {
     try {
       setDeletingUser(userId)
-      setError('')
-      setSuccess('')
 
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
@@ -291,12 +287,12 @@ export default function AdminUsersPage() {
         throw new Error(result.error || 'Failed to delete user')
       }
 
-      setSuccess('User deleted successfully!')
+      showSuccess('User deleted successfully!')
       await fetchUsers()
 
     } catch (error) {
       console.error('Error deleting user:', error)
-      setError(error instanceof Error ? error.message : 'Failed to delete user')
+      showError(error instanceof Error ? error.message : 'Failed to delete user')
     } finally {
       setDeletingUser(null)
     }
@@ -304,8 +300,6 @@ export default function AdminUsersPage() {
 
   const toggleUserStatus = async (userId: string, isActive: boolean) => {
     try {
-      setError('')
-      setSuccess('')
 
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'PATCH',
@@ -321,12 +315,12 @@ export default function AdminUsersPage() {
         throw new Error(result.error || 'Failed to update user status')
       }
 
-      setSuccess(`User ${isActive ? 'activated' : 'deactivated'} successfully!`)
+      showSuccess(`User ${isActive ? 'activated' : 'deactivated'} successfully!`)
       await fetchUsers()
 
     } catch (error) {
       console.error('Error updating user status:', error)
-      setError(error instanceof Error ? error.message : 'Failed to update user status')
+      showError(error instanceof Error ? error.message : 'Failed to update user status')
     }
   }
 
@@ -334,8 +328,6 @@ export default function AdminUsersPage() {
     if (selectedUsers.length === 0 || !bulkAction) return
 
     try {
-      setError('')
-      setSuccess('')
 
       const response = await fetch('/api/admin/users/bulk', {
         method: 'POST',
@@ -354,14 +346,14 @@ export default function AdminUsersPage() {
         throw new Error(result.error || 'Failed to perform bulk action')
       }
 
-      setSuccess(`Bulk action completed successfully! ${selectedUsers.length} users affected.`)
+      showSuccess(`Bulk action completed successfully! ${selectedUsers.length} users affected.`)
       setSelectedUsers([])
       setBulkAction('')
       await fetchUsers()
 
     } catch (error) {
       console.error('Error performing bulk action:', error)
-      setError(error instanceof Error ? error.message : 'Failed to perform bulk action')
+      showError(error instanceof Error ? error.message : 'Failed to perform bulk action')
     }
   }
 
@@ -554,9 +546,23 @@ export default function AdminUsersPage() {
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>
+                  <Button 
+                    onClick={() => {
+                      try {
+                        exportStudentsToCSV(filteredUsers)
+                        showSuccess('Users exported successfully!')
+                      } catch (error) {
+                        showError('Failed to export users')
+                      }
+                    }} 
+                    variant="outline"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV
+                  </Button>
                 </div>
               </div>
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
                 <div className="text-sm text-gray-600">
                   {filteredUsers.length} of {users.length} user{users.length !== 1 ? 's' : ''} found
                 </div>

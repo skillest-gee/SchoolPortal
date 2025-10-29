@@ -33,6 +33,8 @@ import {
   ExternalLink
 } from 'lucide-react'
 import Loading from '@/components/ui/loading'
+import { exportApplicationsToCSV } from '@/lib/csv-export'
+import { showSuccess, showError } from '@/lib/toast'
 
 interface Application {
   id: string
@@ -119,10 +121,10 @@ export default function AdminApplicationsPage() {
         const data = await response.json()
         setApplications(data.data || [])
       } else {
-        setError('Failed to load applications')
+        showError('Failed to load applications')
       }
     } catch (error) {
-      setError('Error loading applications')
+        showError('Error loading applications')
     } finally {
       setLoading(false)
     }
@@ -148,10 +150,10 @@ export default function AdminApplicationsPage() {
         setError('')
       } else {
         const errorData = await response.json()
-        setError(errorData.error || 'Failed to review application')
+        showError(errorData.error || 'Failed to review application')
       }
     } catch (error) {
-      setError('Error reviewing application')
+      showError('Error reviewing application')
     } finally {
       setReviewLoading(false)
     }
@@ -160,8 +162,6 @@ export default function AdminApplicationsPage() {
   const generateAcceptanceLetter = async (application: Application) => {
     try {
       setLoading(true)
-      setError('')
-      setSuccess('')
 
       // First, get the student user if they exist
       const studentResponse = await fetch(`/api/admin/users?email=${application.email}`)
@@ -191,13 +191,13 @@ export default function AdminApplicationsPage() {
         window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
         
-        setSuccess(`Acceptance letter generated for ${application.firstName} ${application.lastName}`)
+        showSuccess(`Acceptance letter generated for ${application.firstName} ${application.lastName}`)
       } else {
-        setError(letterData.error || 'Failed to generate acceptance letter')
+        showError(letterData.error || 'Failed to generate acceptance letter')
       }
     } catch (error) {
       console.error('Error generating acceptance letter:', error)
-      setError('Failed to generate acceptance letter')
+      showError('Failed to generate acceptance letter')
     } finally {
       setLoading(false)
     }
@@ -206,8 +206,6 @@ export default function AdminApplicationsPage() {
   const sendLoginCredentials = async (application: Application) => {
     try {
       setLoading(true)
-      setError('')
-      setSuccess('')
 
       // Get the student user
       const studentResponse = await fetch(`/api/admin/users?email=${application.email}`)
@@ -256,7 +254,7 @@ export default function AdminApplicationsPage() {
       const credentialsData = await credentialsResponse.json()
 
       if (credentialsData.success) {
-        setSuccess(`Login credentials sent to ${application.firstName} ${application.lastName}. Hall assigned: ${hallOfResidence}`)
+        showSuccess(`Login credentials sent to ${application.firstName} ${application.lastName}. Hall assigned: ${hallOfResidence}`)
         // Reload applications to update status
         loadApplications()
       } else {
@@ -374,6 +372,20 @@ export default function AdminApplicationsPage() {
               <Button onClick={loadApplications} variant="outline">
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
+              </Button>
+              <Button 
+                onClick={() => {
+                  try {
+                    exportApplicationsToCSV(filteredApplications)
+                    showSuccess('Applications exported successfully!')
+                  } catch (error) {
+                    showError('Failed to export applications')
+                  }
+                }} 
+                variant="outline"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
               </Button>
             </div>
           </div>
