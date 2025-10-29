@@ -50,13 +50,14 @@ export default function LoginPage() {
         // Wait for session to be established
         let session = await getSession()
         let attempts = 0
-        const maxAttempts = 5
+        const maxAttempts = 10 // Increased attempts
         
         // Retry getting session if it's not immediately available
         while (!session?.user?.role && attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 200))
+          await new Promise(resolve => setTimeout(resolve, 300))
           session = await getSession()
           attempts++
+          if (process.env.NODE_ENV === 'development') console.log(`Session check attempt ${attempts}:`, session?.user)
         }
         
         if (session?.user?.role) {
@@ -75,11 +76,15 @@ export default function LoginPage() {
               router.push('/dashboard')
           }
         } else {
-          setError('Session not established. Please refresh the page.')
+          setError('Session not established. Please try refreshing the page or contact support.')
           setIsLoading(false)
         }
       } else {
-        setError(result?.error || 'Invalid credentials')
+        // Handle specific error messages
+        const errorMessage = result?.error === 'CredentialsSignin' 
+          ? 'Invalid email/Student ID or password. Please check your credentials and try again.'
+          : result?.error || 'Invalid credentials'
+        setError(errorMessage)
         setIsLoading(false)
       }
     } catch (error) {

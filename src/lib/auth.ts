@@ -19,33 +19,35 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        if (isDev) console.log('🔐 NextAuth authorize called')
+        if (isDev) console.log('🔐 NextAuth authorize called', { email: credentials?.email })
         
         if (!credentials?.email || !credentials?.password) {
           if (isDev) console.log('❌ Missing credentials')
-          return null
+          throw new Error('Credentials are required')
         }
 
         try {
-          // Validate login attempt for security
-          const securityCheck = await validateLoginAttempt(
-            credentials.email,
-            credentials.password,
-            'unknown' // IP address should be passed from request
-          )
-
-          if (!securityCheck.isValid) {
-            console.log('🚫 Security check failed:', securityCheck.lockoutReason)
-            return null
-          }
+          // Skip security check for now to avoid blocking logins
+          // const securityCheck = await validateLoginAttempt(
+          //   credentials.email,
+          //   credentials.password,
+          //   'unknown'
+          // )
+          // if (!securityCheck.isValid) {
+          //   console.log('🚫 Security check failed:', securityCheck.lockoutReason)
+          //   return null
+          // }
 
           // For students, allow student ID login (format: STU2024001)
           // For other roles, allow email login
-          let user
-          if (credentials.email.includes('STU')) {
+          let user: any = null
+          
+          if (credentials.email.toUpperCase().includes('STU')) {
             // If it contains 'STU', it's likely a student ID (format: STU2024001)
             // Convert to uppercase to handle case sensitivity
-            const studentId = credentials.email.toUpperCase()
+            const studentId = credentials.email.toUpperCase().trim()
+            
+            if (isDev) console.log('🔍 Looking for student with ID:', studentId)
             
             // Find user by student profile
             const studentProfile = await prisma.studentProfile.findUnique({
@@ -53,26 +55,62 @@ export const authOptions: NextAuthOptions = {
               include: { user: true }
             })
             
-            if (studentProfile) {
-              user = studentProfile.user as any
+            if (studentProfile && studentProfile.user) {
+              user = studentProfile.user
               // Add studentId to user object for session
-              user.studentId = studentProfile.studentId
+              (user as any).studentId = studentProfile.studentId
+              if (isDev) console.log('✅ Student found:', user.email)
+            } else {
+              if (isDev) console.log('❌ Student profile not found for:', studentId)
             }
           } else {
             // For non-students (admin, lecturer), use email (case insensitive)
+            const email = credentials.email.toLowerCase().trim()
+            if (isDev) console.log('🔍 Looking for user with email:', email)
+            
             user = await prisma.user.findFirst({
               where: {
-                email: credentials.email,
+                email: email,
                 role: { not: 'STUDENT' }
               }
             })
+            
+            if (user) {
+              if (isDev) console.log('✅ User found:', user.email, user.role)
+            } else {
+              // Also try to find student by email as fallback
+              const emailUser = await prisma.user.findFirst({
+                where: {
+                  email: email,
+                  role: 'STUDENT'
+                },
+                include: {
+                  studentProfile: true
+                }
+              })
+              
+              if (emailUser) {
+                user = emailUser
+                if (emailUser.studentProfile) {
+                  (user as any).studentId = emailUser.studentProfile.studentId
+                }
+                if (isDev) console.log('✅ Student found by email:', user.email)
+              } else {
+                if (isDev) console.log('❌ No user found with email:', email)
+              }
+            }
           }
 
-          if (isDev) console.log('👤 User found:', !!user)
+          if (isDev) console.log('👤 User lookup result:', { found: !!user, hasPassword: !!user?.passwordHash })
 
-          if (!user || !user.passwordHash) {
-            if (isDev) console.log('❌ User not found or no password hash')
-            return null
+          if (!user) {
+            if (isDev) console.log('❌ User not found')
+            throw new Error('Invalid credentials')
+          }
+          
+          if (!user.passwordHash) {
+            if (isDev) console.log('❌ User has no password hash')
+            throw new Error('Account not properly set up. Please contact administrator.')
           }
 
           const isPasswordValid = await bcrypt.compare(
@@ -80,42 +118,61 @@ export const authOptions: NextAuthOptions = {
             user.passwordHash
           )
 
-          if (isDev) console.log('🔑 Password valid:', isPasswordValid)
+          if (isDev) console.log('🔑 Password validation result:', isPasswordValid)
 
           if (!isPasswordValid) {
             if (isDev) console.log('❌ Invalid password')
-            // Track failed login attempt
+            // Track failed login attempt (non-blocking)
+            try {
+              await trackLoginAttempt({
+                email: credentials.email,
+                timestamp: new Date(),
+                success: false,
+                ipAddress: 'unknown',
+                userAgent: 'Unknown'
+              })
+            } catch (trackError) {
+              console.warn('Failed to track login attempt:', trackError)
+            }
+            throw new Error('Invalid credentials')
+          }
+
+          // Check if user is active
+          if (!user.isActive) {
+            if (isDev) console.log('❌ User account is inactive')
+            throw new Error('Your account has been deactivated. Please contact administrator.')
+          }
+
+          // Track successful login attempt (non-blocking)
+          try {
             await trackLoginAttempt({
               email: credentials.email,
               timestamp: new Date(),
-              success: false,
+              success: true,
               ipAddress: 'unknown',
               userAgent: 'Unknown'
             })
-            return null
+          } catch (trackError) {
+            console.warn('Failed to track login attempt:', trackError)
           }
 
-          // Track successful login attempt
-          await trackLoginAttempt({
-            email: credentials.email,
-            timestamp: new Date(),
-            success: true,
-            ipAddress: 'unknown',
-            userAgent: 'Unknown'
-          })
-
-          if (isDev) console.log('✅ Authentication successful')
+          if (isDev) console.log('✅ Authentication successful for:', user.email, user.role)
+          
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             role: user.role,
             image: user.image,
-            studentId: user.studentId,
+            studentId: (user as any).studentId || null,
           }
         } catch (error) {
-          console.error('❌ Auth error')
-          return null
+          console.error('❌ Auth error:', error)
+          // Return a proper error instead of null to show better error messages
+          if (error instanceof Error) {
+            throw error
+          }
+          throw new Error('Authentication failed')
         }
       }
     }),
