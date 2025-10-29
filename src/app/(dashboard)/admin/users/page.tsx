@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { exportStudentsToCSV } from '@/lib/csv-export'
 import { showSuccess, showError } from '@/lib/toast'
+import { EnhancedMobileTable } from '@/components/ui/mobile-table-enhanced'
 
 const createUserSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -595,176 +596,251 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Users Table */}
-        {filteredUsers.length > 0 ? (
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-6 py-3 text-left">
-                        <input
-                          type="checkbox"
-                          checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="rounded border-gray-300"
-                        />
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        User
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Role
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Details
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <input
-                            type="checkbox"
-                            checked={selectedUsers.includes(user.id)}
-                            onChange={(e) => handleUserSelect(user.id, e.target.checked)}
-                            className="rounded border-gray-300"
-                          />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                {getRoleIcon(user.role)}
-                              </div>
-                            </div>
-                            <div className="ml-4">
-                              <div 
-                                className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600 hover:underline"
-                                onClick={() => openUserDetails(user)}
-                              >
-                                {user.name}
-                              </div>
-                              <div 
-                                className="text-sm text-gray-500 cursor-pointer hover:text-blue-600 hover:underline"
-                                onClick={() => openUserDetails(user)}
-                              >
-                                {user.email}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getRoleBadge(user.role)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {user.role === 'STUDENT' && user.studentProfile && (
-                            <div>
-                              <div>ID: {user.studentProfile.studentId}</div>
-                              <div className="text-gray-500">{user.studentProfile.program}</div>
-                            </div>
-                          )}
-                          {user.role === 'LECTURER' && user.lecturerProfile && (
-                            <div>
-                              <div>ID: {user.lecturerProfile.staffId}</div>
-                              <div className="text-gray-500">{user.lecturerProfile.department}</div>
-                            </div>
-                          )}
-                          {user.role === 'ADMIN' && (
-                            <div className="text-gray-500">System Administrator</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className={`w-2 h-2 rounded-full mr-2 ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
-                            <span className="text-sm text-gray-900">
-                              {user.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(user.createdAt)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openUserDetails(user)}
-                              title="View Details"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEditForm(user)}
-                              title="Edit User"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={user.isActive ? "destructive" : "default"}
-                              onClick={() => toggleUserStatus(user.id, !user.isActive)}
-                              title={user.isActive ? "Deactivate User" : "Activate User"}
-                            >
-                              {user.isActive ? (
-                                <ShieldOff className="h-4 w-4" />
-                              ) : (
-                                <Shield className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => {
-                                if (confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
-                                  deleteUser(user.id)
-                                }
-                              }}
-                              disabled={deletingUser === user.id}
-                              title="Delete User"
-                            >
-                              {deletingUser === user.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Users Found</h3>
-              <p className="text-gray-500">
-                {searchTerm || roleFilter !== 'ALL'
-                  ? 'No users match your search criteria.'
-                  : 'No users have been created yet.'
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <EnhancedMobileTable
+              data={filteredUsers}
+              columns={[
+                {
+                  key: 'user',
+                  label: 'User',
+                  mobileLabel: 'User Info',
+                  render: (_, user) => (
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          {getRoleIcon(user.role)}
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <div 
+                          className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600 hover:underline"
+                          onClick={() => openUserDetails(user)}
+                        >
+                          {user.name}
+                        </div>
+                        <div 
+                          className="text-sm text-gray-500 cursor-pointer hover:text-blue-600 hover:underline"
+                          onClick={() => openUserDetails(user)}
+                        >
+                          {user.email}
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                  mobileRender: (_, user) => (
+                    <div>
+                      <div className="font-semibold text-base">{user.name}</div>
+                      <div className="text-sm text-gray-500">{user.email}</div>
+                    </div>
+                  )
+                },
+                {
+                  key: 'role',
+                  label: 'Role',
+                  render: (_, user) => getRoleBadge(user.role),
+                  mobileRender: (_, user) => getRoleBadge(user.role)
+                },
+                {
+                  key: 'details',
+                  label: 'Details',
+                  mobileLabel: 'Details',
+                  render: (_, user) => {
+                    if (user.role === 'STUDENT' && user.studentProfile) {
+                      return (
+                        <div>
+                          <div>ID: {user.studentProfile.studentId}</div>
+                          <div className="text-gray-500">{user.studentProfile.program}</div>
+                        </div>
+                      )
+                    }
+                    if (user.role === 'LECTURER' && user.lecturerProfile) {
+                      return (
+                        <div>
+                          <div>ID: {user.lecturerProfile.staffId}</div>
+                          <div className="text-gray-500">{user.lecturerProfile.department}</div>
+                        </div>
+                      )
+                    }
+                    return <div className="text-gray-500">System Administrator</div>
+                  },
+                  mobileRender: (_, user) => {
+                    if (user.role === 'STUDENT' && user.studentProfile) {
+                      return `ID: ${user.studentProfile.studentId}, ${user.studentProfile.program}`
+                    }
+                    if (user.role === 'LECTURER' && user.lecturerProfile) {
+                      return `ID: ${user.lecturerProfile.staffId}, ${user.lecturerProfile.department}`
+                    }
+                    return 'System Administrator'
+                  }
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  render: (_, user) => (
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <span className="text-sm text-gray-900">
+                        {user.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  ),
+                  mobileRender: (_, user) => (
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <span>{user.isActive ? 'Active' : 'Inactive'}</span>
+                    </div>
+                  )
+                },
+                {
+                  key: 'created',
+                  label: 'Created',
+                  mobileLabel: 'Joined',
+                  render: (_, user) => formatDate(user.createdAt),
+                  mobileRender: (_, user) => formatDate(user.createdAt),
+                  hideOnMobile: true
+                },
+                {
+                  key: 'actions',
+                  label: 'Actions',
+                  mobileLabel: 'Actions',
+                  render: (_, user) => (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openUserDetails(user)
+                        }}
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openEditForm(user)
+                        }}
+                        title="Edit User"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={user.isActive ? "destructive" : "default"}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleUserStatus(user.id, !user.isActive)
+                        }}
+                        title={user.isActive ? "Deactivate User" : "Activate User"}
+                      >
+                        {user.isActive ? (
+                          <ShieldOff className="h-4 w-4" />
+                        ) : (
+                          <Shield className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
+                            deleteUser(user.id)
+                          }
+                        }}
+                        disabled={deletingUser === user.id}
+                        title="Delete User"
+                      >
+                        {deletingUser === user.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ),
+                  mobileRender: (_, user) => (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openUserDetails(user)
+                        }}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openEditForm(user)
+                        }}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={user.isActive ? "destructive" : "default"}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleUserStatus(user.id, !user.isActive)
+                        }}
+                      >
+                        {user.isActive ? (
+                          <>
+                            <ShieldOff className="h-3 w-3 mr-1" />
+                            Deactivate
+                          </>
+                        ) : (
+                          <>
+                            <Shield className="h-3 w-3 mr-1" />
+                            Activate
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (confirm(`Delete ${user.name}?`)) {
+                            deleteUser(user.id)
+                          }
+                        }}
+                        disabled={deletingUser === user.id}
+                      >
+                        {deletingUser === user.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        ) : (
+                          <Trash2 className="h-3 w-3 mr-1" />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
+                  )
                 }
-              </p>
-            </CardContent>
-          </Card>
-        )}
+              ]}
+              selectable
+              selectedRows={selectedUsers}
+              onRowSelect={handleUserSelect}
+              onSelectAll={handleSelectAll}
+              getRowId={(user) => user.id}
+              emptyMessage={searchTerm || roleFilter !== 'ALL'
+                ? 'No users match your search criteria.'
+                : 'No users have been created yet.'}
+              onRowClick={(user) => openUserDetails(user)}
+            />
+          </CardContent>
+        </Card>
 
         {/* Create User Modal */}
         {showCreateForm && (
