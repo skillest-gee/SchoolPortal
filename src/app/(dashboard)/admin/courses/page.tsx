@@ -279,7 +279,7 @@ export default function AdminCoursesPage() {
     setValue('code', course.code)
     setValue('title', course.title)
     setValue('description', course.description || '')
-    setValue('credits', course.credits.toString())
+    setValue('credits', String(course.credits))
     setValue('department', course.department)
     setValue('level', course.level)
     setValue('semester', course.semester)
