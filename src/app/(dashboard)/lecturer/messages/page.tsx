@@ -178,7 +178,7 @@ export default function LecturerMessagesPage() {
                   {error ? (
                     <div className="text-center py-4">
                       <p className="text-red-500 mb-2">{error}</p>
-                      <Button size="sm" onClick={loadMessages}>
+                      <Button size="sm" onClick={() => loadMessages(true)}>
                         Retry
                       </Button>
                     </div>

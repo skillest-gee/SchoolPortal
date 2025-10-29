@@ -287,7 +287,6 @@ export default function AdminCoursesPage() {
                 semester: updatedCourse.semester || course.semester,
                 academicYear: updatedCourse.academicYear || course.academicYear,
                 lecturer: lecturerDetails || course.lecturer,
-                lecturerId: updatedCourse.lecturerId || course.lecturerId,
                 isActive: updatedCourse.isActive !== undefined ? updatedCourse.isActive : course.isActive,
                 _count: updatedCourse._count || course._count
               }
