@@ -25,6 +25,7 @@ import {
   Activity
 } from 'lucide-react'
 import Loading from '@/components/ui/loading'
+import { EnhancedMobileTable } from '@/components/ui/mobile-table-enhanced'
 
 interface FinancialSummary {
   totalRevenue: number
@@ -327,57 +328,83 @@ export default function AdminFinancesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {recentPayments.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Student</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Amount</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Description</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Date</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Method</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentPayments.map((payment) => (
-                      <tr key={payment.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <div>
-                            <p className="font-medium text-gray-900">{payment.studentName}</p>
-                            <p className="text-sm text-gray-500">{payment.studentId}</p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 font-medium text-gray-900">
-                          {formatCurrency(payment.amount)}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">
-                          {payment.description}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge className={getStatusColor(payment.status)}>
-                            {payment.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">
-                          {new Date(payment.paymentDate).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">
-                          {payment.method}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No payments found</h3>
-                <p className="text-gray-600">No payment records match your current filters.</p>
-              </div>
-            )}
+            <EnhancedMobileTable
+              data={recentPayments}
+              columns={[
+                {
+                  key: 'student',
+                  label: 'Student',
+                  mobileLabel: 'Student',
+                  render: (_, payment) => (
+                    <div className="font-medium">{payment.studentName}</div>
+                  ),
+                  mobileRender: (_, payment) => payment.studentName
+                },
+                {
+                  key: 'amount',
+                  label: 'Amount',
+                  mobileLabel: 'Amount',
+                  render: (_, payment) => (
+                    <div className="font-semibold text-green-600">${payment.amount.toFixed(2)}</div>
+                  ),
+                  mobileRender: (_, payment) => (
+                    <span className="font-semibold text-green-600">${payment.amount.toFixed(2)}</span>
+                  )
+                },
+                {
+                  key: 'description',
+                  label: 'Description',
+                  mobileLabel: 'Fee Type',
+                  render: (_, payment) => payment.description,
+                  mobileRender: (_, payment) => payment.description
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  mobileLabel: 'Status',
+                  render: (_, payment) => {
+                    const statusColors = {
+                      COMPLETED: 'bg-green-100 text-green-800',
+                      PENDING: 'bg-yellow-100 text-yellow-800',
+                      FAILED: 'bg-red-100 text-red-800'
+                    }
+                    return (
+                      <Badge className={statusColors[payment.status] || 'bg-gray-100 text-gray-800'}>
+                        {payment.status}
+                      </Badge>
+                    )
+                  },
+                  mobileRender: (_, payment) => {
+                    const statusColors = {
+                      COMPLETED: 'bg-green-100 text-green-800',
+                      PENDING: 'bg-yellow-100 text-yellow-800',
+                      FAILED: 'bg-red-100 text-red-800'
+                    }
+                    return (
+                      <Badge className={statusColors[payment.status] || 'bg-gray-100 text-gray-800'}>
+                        {payment.status}
+                      </Badge>
+                    )
+                  }
+                },
+                {
+                  key: 'date',
+                  label: 'Date',
+                  mobileLabel: 'Date',
+                  render: (_, payment) => new Date(payment.paymentDate).toLocaleDateString(),
+                  mobileRender: (_, payment) => new Date(payment.paymentDate).toLocaleDateString()
+                },
+                {
+                  key: 'method',
+                  label: 'Method',
+                  mobileLabel: 'Payment Method',
+                  render: (_, payment) => payment.method || 'N/A',
+                  mobileRender: (_, payment) => payment.method || 'N/A',
+                  hideOnMobile: true
+                }
+              ]}
+              emptyMessage="No payment records found"
+            />
           </CardContent>
         </Card>
       </div>

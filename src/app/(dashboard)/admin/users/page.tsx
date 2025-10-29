@@ -21,6 +21,7 @@ import {
 import { exportStudentsToCSV } from '@/lib/csv-export'
 import { showSuccess, showError } from '@/lib/toast'
 import { EnhancedMobileTable } from '@/components/ui/mobile-table-enhanced'
+import { FormFieldError } from '@/components/ui/form-field-error'
 
 const createUserSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -874,9 +875,7 @@ export default function AdminUsersPage() {
                         {...register('name')}
                         className={errors.name ? 'border-red-500' : ''}
                       />
-                      {errors.name && (
-                        <p className="text-sm text-red-500">{errors.name.message}</p>
-                      )}
+                      <FormFieldError error={errors.name?.message} />
                     </div>
 
                     <div className="space-y-2">
