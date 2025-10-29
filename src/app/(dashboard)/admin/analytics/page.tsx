@@ -147,24 +147,24 @@ export default function AdminAnalyticsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-          <p className="text-gray-600 mt-1">Comprehensive insights into your portal</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Comprehensive insights into your portal</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg w-full sm:w-auto text-sm"
           >
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
             <option value="90">Last 90 days</option>
             <option value="365">Last year</option>
           </select>
-          <Button onClick={handleExportPDF} disabled={downloading}>
+          <Button onClick={handleExportPDF} disabled={downloading} className="w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
             {downloading ? 'Exporting...' : 'Export PDF'}
           </Button>
@@ -172,7 +172,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -227,7 +227,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Enrollment by Programme */}
         <Card>
           <CardHeader>
