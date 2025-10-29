@@ -16,6 +16,7 @@ import {
   TrendingUp
 } from 'lucide-react'
 import Loading from '@/components/ui/loading'
+import { generateTranscriptPDF } from '@/lib/pdf-export'
 
 interface TranscriptRecord {
   courseCode: string
@@ -84,38 +85,28 @@ export default function StudentTranscriptPage() {
   const handleDownload = async () => {
     try {
       setDownloading(true)
-      // In a real implementation, this would generate and download a PDF
-      // For now, we'll create a text version
       
       if (!transcript) return
 
-      let text = 'OFFICIAL ACADEMIC TRANSCRIPT\n'
-      text += '='.repeat(50) + '\n\n'
-      text += `Student ID: ${transcript.student.studentId}\n`
-      text += `Name: ${transcript.student.name}\n`
-      text += `Programme: ${transcript.student.programme}\n`
-      text += `Level: ${transcript.student.level}\n`
-      text += `GPA: ${transcript.student.gpa}\n`
-      text += `Total Credits Earned: ${transcript.student.totalCreditsEarned}\n`
-      text += '\n' + '='.repeat(50) + '\n'
-      text += 'COURSE HISTORY\n'
-      text += '='.repeat(50) + '\n\n'
+      const transcriptData = {
+        studentName: transcript.student.name,
+        studentId: transcript.student.studentId,
+        programme: transcript.student.programme || 'N/A',
+        level: transcript.student.level || 'N/A',
+        gpa: parseFloat(transcript.student.gpa) || 0,
+        totalCredits: transcript.student.totalCreditsEarned,
+        records: transcript.records.map(record => ({
+          courseCode: record.courseCode,
+          courseTitle: record.courseTitle,
+          credits: record.credits,
+          grade: typeof record.grade === 'string' ? record.grade : record.grade?.toString() || 'N/A',
+          semester: record.semester,
+          academicYear: record.academicYear
+        }))
+      }
 
-      transcript.records.forEach(record => {
-        text += `${record.courseCode} - ${record.courseTitle}\n`
-        text += `  Credits: ${record.credits} | Grade: ${record.letterGrade} (${record.grade}) | ${record.academicYear} - ${record.semester}\n\n`
-      })
-
-      // Create and download file
-      const blob = new Blob([text], { type: 'text/plain' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `transcript_${transcript.student.studentId}.txt`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      const doc = generateTranscriptPDF(transcriptData)
+      doc.save(`transcript_${transcript.student.studentId}.pdf`)
 
     } catch (error) {
       console.error('Error downloading transcript:', error)

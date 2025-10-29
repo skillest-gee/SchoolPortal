@@ -27,7 +27,8 @@ import {
   Search,
   ChevronDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BarChart3
 } from 'lucide-react'
 import Loading from '@/components/ui/loading'
 import { MobileNav } from '@/components/ui/mobile-nav'
@@ -133,6 +134,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     } else if (userRole === 'ADMIN') {
       return [
         { name: 'Dashboard', href: '/admin/dashboard', icon: Home },
+        { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
         { name: 'User Management', href: '/admin/users', icon: Users },
         { name: 'Applications', href: '/admin/applications', icon: FileText },
         { name: 'Course Approval', href: '/admin/course-approval', icon: BookOpen },
