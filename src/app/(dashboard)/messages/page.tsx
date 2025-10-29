@@ -181,6 +181,7 @@ export default function MessagesPage() {
   const inboxMessages = allMessages.filter(m => m.recipientId === session?.user?.id)
   const sentMessages = allMessages.filter(m => m.senderId === session?.user?.id)
   const unreadCount = inboxMessages.filter(m => !m.isRead).length
+  const sentCount = sentMessages.length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -245,7 +246,7 @@ export default function MessagesPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Sent</p>
-                  <p className="text-2xl font-bold text-gray-900">{sentCount}</p>
+                  <p className="text-2xl font-bold text-gray-900">{sentMessages.length}</p>
                 </div>
               </div>
             </CardContent>
