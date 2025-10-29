@@ -4,154 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { generateAdmissionEmail, sendEmail } from '@/lib/email-service'
-
-// Programme-specific fee structures
-const programmeFees = {
-  'BACHELOR OF SCIENCE (INFORMATION TECHNOLOGY)': {
-    admission: 5000,
-    tuition: 18000,
-    accommodation: 3500,
-    library: 600,
-    laboratory: 1200,
-    examination: 800,
-    total: 26100
-  },
-  'BACHELOR OF SCIENCE (COMPUTER SCIENCE)': {
-    admission: 5000,
-    tuition: 18000,
-    accommodation: 3500,
-    library: 600,
-    laboratory: 1200,
-    examination: 800,
-    total: 26100
-  },
-  'BACHELOR OF SCIENCE (SOFTWARE ENGINEERING)': {
-    admission: 5000,
-    tuition: 20000,
-    accommodation: 3500,
-    library: 600,
-    laboratory: 1500,
-    examination: 800,
-    total: 27400
-  },
-  'BACHELOR OF ARTS (BUSINESS ADMINISTRATION)': {
-    admission: 5000,
-    tuition: 15000,
-    accommodation: 3500,
-    library: 500,
-    examination: 600,
-    total: 21600
-  },
-  'BACHELOR OF SCIENCE (ACCOUNTING)': {
-    admission: 5000,
-    tuition: 16000,
-    accommodation: 3500,
-    library: 500,
-    examination: 700,
-    total: 21700
-  }
-}
-
-// Function to create programme-specific fees
-async function createProgrammeFees(studentId: string, programme: string) {
-  // Try exact match first
-  let fees = programmeFees[programme as keyof typeof programmeFees]
-  
-  // If no exact match, try partial matching for common programme names
-  if (!fees) {
-    const programmeUpper = programme.toUpperCase()
-    
-    if (programmeUpper.includes('COMPUTER SCIENCE') || programmeUpper.includes('CS')) {
-      fees = programmeFees['BACHELOR OF SCIENCE (COMPUTER SCIENCE)']
-    } else if (programmeUpper.includes('INFORMATION TECHNOLOGY') || programmeUpper.includes('IT')) {
-      fees = programmeFees['BACHELOR OF SCIENCE (INFORMATION TECHNOLOGY)']
-    } else if (programmeUpper.includes('SOFTWARE ENGINEERING') || programmeUpper.includes('SE')) {
-      fees = programmeFees['BACHELOR OF SCIENCE (SOFTWARE ENGINEERING)']
-    } else if (programmeUpper.includes('BUSINESS ADMINISTRATION') || programmeUpper.includes('BA')) {
-      fees = programmeFees['BACHELOR OF ARTS (BUSINESS ADMINISTRATION)']
-    } else if (programmeUpper.includes('ACCOUNTING')) {
-      fees = programmeFees['BACHELOR OF SCIENCE (ACCOUNTING)']
-    }
-  }
-  
-  if (!fees) {
-    console.log(`⚠️ No fee structure defined for programme: ${programme}`)
-    console.log(`Available programmes: ${Object.keys(programmeFees).join(', ')}`)
-    return
-  }
-
-  console.log(`💰 Creating fees for programme: ${programme}`)
-
-  // 1. ADMISSION FEE (Must be paid before getting login credentials)
-  await prisma.fee.create({
-    data: {
-      studentId: studentId,
-      amount: fees.admission,
-      description: `Admission Fee - ${programme}`,
-      dueDate: new Date('2024-09-01'),
-      isPaid: false
-    }
-  })
-
-  // 2. TUITION FEE (Main academic fee)
-  await prisma.fee.create({
-    data: {
-      studentId: studentId,
-      amount: fees.tuition,
-      description: `Tuition Fee - ${programme} - First Semester 2024/2025`,
-      dueDate: new Date('2024-10-01'),
-      isPaid: false
-    }
-  })
-
-  // 3. ACCOMMODATION FEE
-  await prisma.fee.create({
-    data: {
-      studentId: studentId,
-      amount: fees.accommodation,
-      description: `Accommodation Fee - ${programme} - First Semester 2024/2025`,
-      dueDate: new Date('2024-10-15'),
-      isPaid: false
-    }
-  })
-
-  // 4. LIBRARY FEE
-  await prisma.fee.create({
-    data: {
-      studentId: studentId,
-      amount: fees.library,
-      description: `Library Fee - ${programme} - First Semester 2024/2025`,
-      dueDate: new Date('2024-10-20'),
-      isPaid: false
-    }
-  })
-
-  // 5. LABORATORY FEE (For IT/CS/SE programmes)
-  if ('laboratory' in fees && fees.laboratory) {
-    await prisma.fee.create({
-      data: {
-        studentId: studentId,
-        amount: fees.laboratory,
-        description: `Laboratory Fee - ${programme} - First Semester 2024/2025`,
-        dueDate: new Date('2024-10-25'),
-        isPaid: false
-      }
-    })
-  }
-
-  // 6. EXAMINATION FEE
-  await prisma.fee.create({
-    data: {
-      studentId: studentId,
-      amount: fees.examination,
-      description: `Examination Fee - ${programme} - First Semester 2024/2025`,
-      dueDate: new Date('2024-11-01'),
-      isPaid: false
-    }
-  })
-
-  console.log(`✅ Created ${Object.keys(fees).length} fees for programme: ${programme}`)
-}
+import { createProgrammeFees, programmeFees, findFeeStructure } from '@/lib/fee-utils'
 
 const reviewApplicationSchema = z.object({
   status: z.enum(['UNDER_REVIEW', 'APPROVED', 'REJECTED']),
@@ -308,7 +161,10 @@ export async function PUT(
       })
 
       // Create programme-specific fees automatically
-      await createProgrammeFees(user.id, application.programme.name)
+      const feeResult = await createProgrammeFees(user.id, application.programme.name)
+      if (!feeResult.success) {
+        console.warn(`⚠️ Failed to create fees during approval: ${feeResult.error}`)
+      }
 
       // Send admission notification (Email/SMS)
       try {
@@ -328,7 +184,7 @@ export async function PUT(
           email: application.email,
           studentId: generatedStudentId,
           programme: application.programme.name,
-          fees: programmeFees[application.programme.name as keyof typeof programmeFees] || programmeFees['BACHELOR OF SCIENCE (INFORMATION TECHNOLOGY)'],
+          fees: findFeeStructure(application.programme.name) || programmeFees['BACHELOR OF SCIENCE (INFORMATION TECHNOLOGY)'],
           paymentInstructions: `
             Payment Instructions:
             1. Login to the student portal using your credentials

@@ -21,7 +21,8 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react'
 
 interface CourseRegistrationPeriod {
@@ -61,6 +62,8 @@ export default function CourseRegistrationManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingPeriod, setEditingPeriod] = useState<CourseRegistrationPeriod | null>(null)
   const [viewingPeriod, setViewingPeriod] = useState<CourseRegistrationPeriod | null>(null)
+  const [registrationOpen, setRegistrationOpen] = useState<boolean>(true)
+  const [updatingRegistrationStatus, setUpdatingRegistrationStatus] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -88,7 +91,43 @@ export default function CourseRegistrationManagement() {
       return
     }
     fetchPeriods()
+    fetchRegistrationStatus()
   }, [session, router])
+
+  const fetchRegistrationStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/settings')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.settings) {
+          setRegistrationOpen(data.settings.registrationOpen ?? true)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching registration status:', err)
+    }
+  }
+
+  const toggleRegistrationStatus = async () => {
+    try {
+      setUpdatingRegistrationStatus(true)
+      const newStatus = !registrationOpen
+      
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationOpen: newStatus })
+      })
+
+      if (!response.ok) throw new Error('Failed to update registration status')
+      
+      setRegistrationOpen(newStatus)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update registration status')
+    } finally {
+      setUpdatingRegistrationStatus(false)
+    }
+  }
 
   const fetchPeriods = async () => {
     try {
@@ -271,6 +310,57 @@ export default function CourseRegistrationManagement() {
             </Button>
           </div>
         </div>
+
+        {/* Registration Status Toggle */}
+        <Card className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-full ${registrationOpen ? 'bg-green-100' : 'bg-red-100'}`}>
+                  {registrationOpen ? (
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Course Registration Status
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {registrationOpen 
+                      ? 'Course registration is currently OPEN for all students'
+                      : 'Course registration is currently CLOSED - students cannot register'
+                    }
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={toggleRegistrationStatus}
+                disabled={updatingRegistrationStatus}
+                variant={registrationOpen ? "destructive" : "default"}
+                className="flex items-center gap-2"
+              >
+                {updatingRegistrationStatus ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : registrationOpen ? (
+                  <>
+                    <XCircle className="w-4 h-4" />
+                    Close Registration
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Open Registration
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </Card>
 
         {error && (
           <Alert variant="destructive" className="mb-6">

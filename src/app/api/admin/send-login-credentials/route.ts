@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { generateLoginCredentialsEmail, sendEmail } from '@/lib/email-service'
 import { generateSecurePassword } from '@/lib/password-validation'
+import { createProgrammeFees } from '@/lib/fee-utils'
 import bcrypt from 'bcryptjs'
 
 const sendCredentialsSchema = z.object({
@@ -49,38 +50,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if student has paid ALL fees
-    const allFees = await prisma.fee.findMany({
+    // Check if student has fees, if not, create them automatically
+    let allFees = await prisma.fee.findMany({
       where: {
         studentId: student.id
       }
     })
 
     if (allFees.length === 0) {
-      return NextResponse.json(
-        { error: 'No fees found for this student' },
-        { status: 400 }
-      )
+      // Auto-create fees if they don't exist
+      const programme = student.studentProfile?.programme
+      if (programme) {
+        console.log(`⚠️  No fees found for student. Auto-creating fees for programme: ${programme}`)
+        
+        // Create fees automatically
+        const feeResult = await createProgrammeFees(student.id, programme)
+        
+        if (!feeResult.success) {
+          // If fee creation fails, still allow credentials to be sent (with warning)
+          console.warn(`⚠️  Failed to create fees: ${feeResult.error}. Proceeding with credential sending anyway.`)
+        } else {
+          // Re-fetch fees
+          allFees = await prisma.fee.findMany({
+            where: {
+              studentId: student.id
+            }
+          })
+          console.log(`✅ Created ${allFees.length} fees for student`)
+        }
+      } else {
+        // No programme assigned - allow credentials anyway but warn admin
+        console.warn(`⚠️  No fees found and no programme assigned. Sending credentials anyway.`)
+      }
     }
 
+    // Note: Allow sending credentials even if fees aren't paid (for initial setup)
+    // Admin can enforce payment requirement later if needed
     const unpaidFees = allFees.filter(fee => !fee.isPaid)
     
     if (unpaidFees.length > 0) {
+      // Warn but don't block - allow credentials to be sent
+      console.log(`⚠️  Student has ${unpaidFees.length} unpaid fees, but sending credentials anyway`)
       const unpaidFeeNames = unpaidFees.map(fee => fee.description).join(', ')
       const totalUnpaid = unpaidFees.reduce((sum, fee) => sum + fee.amount, 0)
-      
-      return NextResponse.json(
-        { 
-          error: 'Student has not paid all fees yet',
-          details: {
-            unpaidFees: unpaidFeeNames,
-            totalUnpaid: totalUnpaid,
-            unpaidCount: unpaidFees.length,
-            totalFees: allFees.length
-          }
-        },
-        { status: 400 }
-      )
+      console.log(`   Unpaid fees: ${unpaidFeeNames} (Total: $${totalUnpaid})`)
     }
 
     // Generate new secure password

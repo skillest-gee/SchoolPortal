@@ -2,53 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-
-// Programme-specific fee structures
-const programmeFees = {
-  'BACHELOR OF SCIENCE (INFORMATION TECHNOLOGY)': {
-    admission: 5000,
-    tuition: 18000,
-    accommodation: 3500,
-    library: 600,
-    laboratory: 1200,
-    examination: 800,
-    total: 26100
-  },
-  'BACHELOR OF SCIENCE (COMPUTER SCIENCE)': {
-    admission: 5000,
-    tuition: 18000,
-    accommodation: 3500,
-    library: 600,
-    laboratory: 1200,
-    examination: 800,
-    total: 26100
-  },
-  'BACHELOR OF SCIENCE (SOFTWARE ENGINEERING)': {
-    admission: 5000,
-    tuition: 20000,
-    accommodation: 3500,
-    library: 600,
-    laboratory: 1500,
-    examination: 800,
-    total: 27400
-  },
-  'BACHELOR OF ARTS (BUSINESS ADMINISTRATION)': {
-    admission: 5000,
-    tuition: 15000,
-    accommodation: 3500,
-    library: 500,
-    examination: 600,
-    total: 21600
-  },
-  'BACHELOR OF SCIENCE (ACCOUNTING)': {
-    admission: 5000,
-    tuition: 16000,
-    accommodation: 3500,
-    library: 500,
-    examination: 700,
-    total: 21700
-  }
-}
+import { findFeeStructure } from '@/lib/fee-utils'
 
 // GET: Generate acceptance letter for a student
 export async function GET(request: NextRequest) {
@@ -101,10 +55,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const fees = programmeFees[programme as keyof typeof programmeFees]
+    // Find fee structure using shared utility (handles programme name matching)
+    const fees = findFeeStructure(programme)
+
     if (!fees) {
       return NextResponse.json(
-        { error: 'No fee structure defined for this programme' },
+        { 
+          error: 'No fee structure defined for this programme',
+          details: `Programme: "${programme}". Please ensure the programme name matches one of the predefined programmes.`
+        },
         { status: 400 }
       )
     }

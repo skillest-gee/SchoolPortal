@@ -187,10 +187,10 @@ export default function AdminFinancesPage() {
               </Button>
               <Button 
                 className="bg-green-600 hover:bg-green-700"
-                onClick={() => router.push('/admin/fees')}
+                onClick={() => router.push('/admin/programme-fees')}
               >
                 <CreditCard className="h-4 w-4 mr-2" />
-                Manage Fees
+                Manage Programme Fees
               </Button>
             </div>
           </div>

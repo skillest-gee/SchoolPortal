@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert } from '@/components/ui/alert'
 import Loading from '@/components/ui/loading'
 import { 
@@ -64,7 +64,7 @@ const TARGET_AUDIENCES = [
 ]
 
 export default function AnnouncementsManagement() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
@@ -91,12 +91,14 @@ export default function AnnouncementsManagement() {
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
-    if (session?.user?.role !== 'admin') {
+    if (status === 'loading') return
+    
+    if (!session || session.user.role !== 'ADMIN') {
       router.push('/auth/login')
       return
     }
     fetchAnnouncements()
-  }, [session, router])
+  }, [session, status, router])
 
   const fetchAnnouncements = async () => {
     try {
@@ -307,10 +309,15 @@ export default function AnnouncementsManagement() {
                 value={typeFilter}
                 onValueChange={setTypeFilter}
               >
-                <option value="">All Types</option>
-                {ANNOUNCEMENT_TYPES.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Types</SelectItem>
+                  {ANNOUNCEMENT_TYPES.map(type => (
+                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div>
@@ -321,10 +328,15 @@ export default function AnnouncementsManagement() {
                 value={priorityFilter}
                 onValueChange={setPriorityFilter}
               >
-                <option value="">All Priorities</option>
-                {PRIORITY_LEVELS.map(priority => (
-                  <option key={priority.value} value={priority.value}>{priority.label}</option>
-                ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="All Priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Priorities</SelectItem>
+                  {PRIORITY_LEVELS.map(priority => (
+                    <SelectItem key={priority.value} value={priority.value}>{priority.label}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div>
@@ -335,10 +347,15 @@ export default function AnnouncementsManagement() {
                 value={audienceFilter}
                 onValueChange={setAudienceFilter}
               >
-                <option value="">All Audiences</option>
-                {TARGET_AUDIENCES.map(audience => (
-                  <option key={audience.value} value={audience.value}>{audience.label}</option>
-                ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="All Audiences" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Audiences</SelectItem>
+                  {TARGET_AUDIENCES.map(audience => (
+                    <SelectItem key={audience.value} value={audience.value}>{audience.label}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div>
@@ -349,9 +366,14 @@ export default function AnnouncementsManagement() {
                 value={statusFilter}
                 onValueChange={setStatusFilter}
               >
-                <option value="">All Status</option>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </div>
@@ -390,11 +412,15 @@ export default function AnnouncementsManagement() {
                   <Select
                     value={formData.type}
                     onValueChange={(value: any) => setFormData({ ...formData, type: value })}
-                    required
                   >
-                    {ANNOUNCEMENT_TYPES.map(type => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ANNOUNCEMENT_TYPES.map(type => (
+                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -404,11 +430,15 @@ export default function AnnouncementsManagement() {
                   <Select
                     value={formData.priority}
                     onValueChange={(value: any) => setFormData({ ...formData, priority: value })}
-                    required
                   >
-                    {PRIORITY_LEVELS.map(priority => (
-                      <option key={priority.value} value={priority.value}>{priority.label}</option>
-                    ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITY_LEVELS.map(priority => (
+                        <SelectItem key={priority.value} value={priority.value}>{priority.label}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -418,11 +448,15 @@ export default function AnnouncementsManagement() {
                   <Select
                     value={formData.targetAudience}
                     onValueChange={(value: any) => setFormData({ ...formData, targetAudience: value })}
-                    required
                   >
-                    {TARGET_AUDIENCES.map(audience => (
-                      <option key={audience.value} value={audience.value}>{audience.label}</option>
-                    ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select audience" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TARGET_AUDIENCES.map(audience => (
+                        <SelectItem key={audience.value} value={audience.value}>{audience.label}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
               </div>

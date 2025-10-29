@@ -98,11 +98,25 @@ export default function AdminFeeManagement() {
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
-          setStudentFees(data.data.summary.fees)
+          // Handle different response structures
+          if (data.data?.summary?.fees) {
+            setStudentFees(data.data.summary.fees)
+          } else if (data.data?.fees) {
+            setStudentFees(data.data.fees)
+          } else if (Array.isArray(data.data)) {
+            setStudentFees(data.data)
+          } else {
+            setStudentFees([])
+          }
         }
+      } else {
+        const errorData = await response.json()
+        showError(errorData.error || 'Failed to fetch student fees')
       }
     } catch (error) {
       console.error('Error fetching student fees:', error)
+      showError('Failed to fetch student fees')
+      setStudentFees([])
     }
   }
 

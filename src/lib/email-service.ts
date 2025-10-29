@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY || process.env.EMAIL_SERVER_PASSWORD)
 
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@university.edu'
+const FROM_EMAIL = process.env.FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@university.edu'
 
 export interface EmailTemplate {
   to: string
@@ -404,10 +404,28 @@ This is an automated message. Please do not reply to this email.
 // Send email using template object (original Resend implementation)
 export async function sendEmail(template: EmailTemplate): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
+    // Check if Resend is configured
+    const apiKey = process.env.RESEND_API_KEY || process.env.EMAIL_SERVER_PASSWORD
+    if (!apiKey) {
+      const errorMsg = 'Resend API key not configured. Set RESEND_API_KEY or EMAIL_SERVER_PASSWORD'
+      console.error('❌', errorMsg)
+      return {
+        success: false,
+        error: errorMsg
+      }
+    }
+
+    // Check FROM_EMAIL
+    if (!FROM_EMAIL || FROM_EMAIL === 'noreply@university.edu') {
+      console.warn('⚠️  FROM_EMAIL not set, using default. Emails may fail to send.')
+    }
+
     console.log('📧 SENDING EMAIL VIA RESEND:')
     console.log(`   To: ${template.to}`)
     console.log(`   Subject: ${template.subject}`)
-    
+    console.log(`   From: ${FROM_EMAIL}`)
+    console.log(`   API Key: ${apiKey.substring(0, 10)}...`)
+
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: [template.to],
@@ -417,10 +435,10 @@ export async function sendEmail(template: EmailTemplate): Promise<{ success: boo
     })
 
     if (error) {
-      console.error('❌ Resend email error:', error)
+      console.error('❌ Resend email error:', JSON.stringify(error, null, 2))
       return {
         success: false,
-        error: error.message || 'Failed to send email'
+        error: error.message || JSON.stringify(error) || 'Failed to send email'
       }
     }
 
@@ -432,15 +450,54 @@ export async function sendEmail(template: EmailTemplate): Promise<{ success: boo
     }
   } catch (error) {
     console.error('❌ Email sending failed:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('   Error details:', errorMessage)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: errorMessage
     }
   }
 }
 
 // Helper function to send email with individual parameters
-export async function sendEmailDirect(to: string, subject: string, html: string, IsraeliLanguage?: string): Promise<boolean> {
-  const result = await sendEmail({ to, subject, html, text: IsraeliLanguage || html.replace(/<[^>]*>/g, '') })
-  return result.success
+export async function sendEmailDirect(to: string, subject: string, html: string, text?: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log('📧 Sending email via sendEmailDirect:')
+    console.log(`   To: ${to}`)
+    console.log(`   Subject: ${subject}`)
+    console.log(`   From: ${FROM_EMAIL}`)
+    
+    // Check if Resend is configured
+    if (!process.env.RESEND_API_KEY && !process.env.EMAIL_SERVER_PASSWORD) {
+      console.error('❌ Resend API key not configured')
+      return {
+        success: false,
+        error: 'Email service not configured. Please set RESEND_API_KEY or EMAIL_SERVER_PASSWORD environment variable.'
+      }
+    }
+    
+    const result = await sendEmail({ 
+      to, 
+      subject, 
+      html, 
+      text: text || html.replace(/<[^>]*>/g, '').trim() 
+    })
+    
+    if (!result.success) {
+      console.error('❌ Failed to send email:', result.error)
+      return {
+        success: false,
+        error: result.error || 'Failed to send email'
+      }
+    }
+    
+    console.log('✅ Email sent successfully')
+    return { success: true }
+  } catch (error) {
+    console.error('❌ Error in sendEmailDirect:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    }
+  }
 }

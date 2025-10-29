@@ -7,10 +7,21 @@
 
 ## 🔐 Login Credentials
 
+**⚠️ IMPORTANT**: If login fails, verify accounts exist in Railway database.
+
+**📊 To Check Credentials in Railway:**
+1. Go to your Railway project → Postgres service → Database tab
+2. Click on "Data" tab (if not already selected)
+3. Click on the "+ Query" or "Query" button (or use Railway's SQL editor)
+4. Copy and paste the SQL queries from `check-railway-credentials.sql`
+5. Run the queries to see all users and their status
+6. If accounts are missing, run `npm run db:seed` locally (if you can connect) or use Railway's console
+
 ### **Admin Account**
 - **Email**: `admin@school.edu`
 - **Password**: `admin123`
 - **Role**: Administrator
+- **Login Method**: Email only
 - **Access**: Full system access, user management, application approval, system settings
 
 ---
@@ -18,16 +29,20 @@
 ### **Lecturer Account**
 - **Email**: `lecturer@school.edu`
 - **Password**: `lecturer123`
+- **Staff ID**: `LEC001`
 - **Role**: Lecturer
+- **Login Method**: Email only
 - **Access**: Course management, grade entry, assignment creation, attendance tracking
 
 ---
 
 ### **Student Account**
 - **Email**: `student@school.edu`
+- **OR Student ID**: `STU2024001`
 - **Password**: `student123`
-- **Student ID**: `STU2024001`
 - **Role**: Student
+- **Login Method**: Email OR Student ID (both work)
+- **Note**: Students can login with either email or student ID in the email field
 - **Access**: Course registration, view grades, submit assignments, view attendance
 
 ---

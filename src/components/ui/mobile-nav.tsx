@@ -86,7 +86,7 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
         { name: 'Course Management', href: '/admin/courses', icon: BookOpen },
         { name: 'Registration Control', href: '/admin/registration', icon: Clock },
         { name: 'Finance Management', href: '/admin/finances', icon: DollarSign },
-        { name: 'Fee Management', href: '/admin/fees', icon: DollarSign },
+        { name: 'Programme Fees', href: '/admin/programme-fees', icon: DollarSign },
         { name: 'Student Credentials', href: '/admin/credentials', icon: Key },
         { name: 'Announcements', href: '/admin/announcements', icon: Megaphone },
         { name: 'Academic Calendar', href: '/admin/calendar', icon: Clock },

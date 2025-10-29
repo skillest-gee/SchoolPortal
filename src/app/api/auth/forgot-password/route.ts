@@ -81,7 +81,19 @@ Best regards,
 University Portal Team
     `
 
-    await sendEmailDirect(user.email, 'Password Reset Request', emailHtml, emailText)
+    const emailResult = await sendEmailDirect(user.email, 'Password Reset Request', emailHtml, emailText)
+
+    if (!emailResult.success) {
+      console.error('❌ Failed to send password reset email:', emailResult.error)
+      // Still return success to user (security best practice - don't reveal if email exists)
+      // But log the error for debugging
+      return NextResponse.json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.'
+      })
+    }
+
+    console.log('✅ Password reset email sent successfully to:', user.email)
 
     return NextResponse.json({
       success: true,

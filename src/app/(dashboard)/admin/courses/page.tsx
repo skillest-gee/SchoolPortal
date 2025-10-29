@@ -122,6 +122,8 @@ export default function AdminCoursesPage() {
   const [lecturerFilter, setLecturerFilter] = useState('all')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null)
+  const [updating, setUpdating] = useState(false)
 
   const {
     register,
@@ -236,6 +238,54 @@ export default function AdminCoursesPage() {
     } catch (error) {
       showError('Error updating course status')
     }
+  }
+
+  const updateCourse = async (data: Partial<CreateCourseFormData>) => {
+    if (!editingCourse) return
+
+    try {
+      setUpdating(true)
+      setError('')
+      setSuccess('')
+
+      const response = await fetch(`/api/admin/courses/${editingCourse.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update course')
+      }
+
+      showSuccess('Course updated successfully!')
+      setEditingCourse(null)
+      await fetchCourses()
+
+    } catch (error) {
+      console.error('Error updating course:', error)
+      showError(error instanceof Error ? error.message : 'Failed to update course')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const startEdit = (course: Course) => {
+    setEditingCourse(course)
+    setValue('code', course.code)
+    setValue('title', course.title)
+    setValue('description', course.description || '')
+    setValue('credits', course.credits.toString())
+    setValue('department', course.department)
+    setValue('level', course.level)
+    setValue('semester', course.semester)
+    setValue('academicYear', course.academicYear)
+    setValue('lecturerId', course.lecturer?.id || '')
+    setSelectedCourse(null)
   }
 
   const getLevelColor = (level: string) => {
@@ -470,6 +520,14 @@ export default function AdminCoursesPage() {
                         View
                       </Button>
                       <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => startEdit(course)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
                         variant={course.isActive ? "destructive" : "default"}
                         size="sm"
                         onClick={() => toggleCourseStatus(course.id, !course.isActive)}
@@ -696,6 +754,205 @@ export default function AdminCoursesPage() {
                         <>
                           <Plus className="mr-2 h-4 w-4" />
                           Create Course
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Edit Course Modal */}
+        {editingCourse && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>Edit Course</CardTitle>
+                    <CardDescription>Update course details and lecturer assignment</CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditingCourse(null)
+                      reset()
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit((data) => updateCourse(data))} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-code">Course Code *</Label>
+                      <Input
+                        id="edit-code"
+                        {...register('code')}
+                        className={errors.code ? 'border-red-500' : ''}
+                        placeholder="e.g., CS101"
+                      />
+                      {errors.code && (
+                        <p className="text-sm text-red-500">{errors.code.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-credits">Credits *</Label>
+                      <Input
+                        id="edit-credits"
+                        type="number"
+                        min="1"
+                        max="6"
+                        {...register('credits')}
+                        className={errors.credits ? 'border-red-500' : ''}
+                      />
+                      {errors.credits && (
+                        <p className="text-sm text-red-500">{errors.credits.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="edit-title">Course Title *</Label>
+                      <Input
+                        id="edit-title"
+                        {...register('title')}
+                        className={errors.title ? 'border-red-500' : ''}
+                        placeholder="e.g., Introduction to Computer Science"
+                      />
+                      {errors.title && (
+                        <p className="text-sm text-red-500">{errors.title.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-department">Department *</Label>
+                      <Select onValueChange={(value) => setValue('department', value)} value={watch('department')}>
+                        <SelectTrigger className={errors.department ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DEPARTMENTS.map((dept) => (
+                            <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.department && (
+                        <p className="text-sm text-red-500">{errors.department.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-level">Level *</Label>
+                      <Select onValueChange={(value) => setValue('level', value)} value={watch('level')}>
+                        <SelectTrigger className={errors.level ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Select level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LEVELS.map((level) => (
+                            <SelectItem key={level} value={level}>{level}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.level && (
+                        <p className="text-sm text-red-500">{errors.level.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-semester">Semester *</Label>
+                      <Select onValueChange={(value) => setValue('semester', value)} value={watch('semester')}>
+                        <SelectTrigger className={errors.semester ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Select semester" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SEMESTERS.map((semester) => (
+                            <SelectItem key={semester} value={semester}>{semester}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.semester && (
+                        <p className="text-sm text-red-500">{errors.semester.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-academicYear">Academic Year *</Label>
+                      <Select onValueChange={(value) => setValue('academicYear', value)} value={watch('academicYear')}>
+                        <SelectTrigger className={errors.academicYear ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Select academic year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ACADEMIC_YEARS.map((year) => (
+                            <SelectItem key={year} value={year}>{year}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.academicYear && (
+                        <p className="text-sm text-red-500">{errors.academicYear.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-lecturerId">Assign Lecturer *</Label>
+                      <Select onValueChange={(value) => setValue('lecturerId', value)} value={watch('lecturerId')}>
+                        <SelectTrigger className={errors.lecturerId ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Select lecturer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {lecturers.map((lecturer) => (
+                            <SelectItem key={lecturer.id} value={lecturer.id}>
+                              {lecturer.name} ({lecturer.lecturerProfile?.department})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.lecturerId && (
+                        <p className="text-sm text-red-500">{errors.lecturerId.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="edit-description">Description</Label>
+                      <Textarea
+                        id="edit-description"
+                        {...register('description')}
+                        rows={3}
+                        placeholder="Course description and objectives..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingCourse(null)
+                        reset()
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={updating}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {updating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Update Course
                         </>
                       )}
                     </Button>
