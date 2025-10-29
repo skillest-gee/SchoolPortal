@@ -5,8 +5,8 @@ import jsPDF from 'jspdf'
  */
 export function generateTranscriptPDF(transcriptData: any) {
   const doc = new jsPDF()
-  const pageWidth = doc.internal.pageWidth
-  const pageHeight = doc.internal.pageHeight
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 20
   let yPos = margin
 
@@ -87,7 +87,7 @@ export function generateTranscriptPDF(transcriptData: any) {
   })
 
   // Footer
-  const totalPages = doc.getNumberOfPages()
+  const totalPages = (doc as any).internal.getNumberOfPages()
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
     doc.setFontSize(8)
@@ -107,7 +107,7 @@ export function generateTranscriptPDF(transcriptData: any) {
  */
 export function generateReceiptPDF(receiptData: any) {
   const doc = new jsPDF()
-  const pageWidth = doc.internal.pageWidth
+  const pageWidth = doc.internal.pageSize.getWidth()
   const margin = 20
   let yPos = margin
 
@@ -180,8 +180,8 @@ export function generateReceiptPDF(receiptData: any) {
  */
 export function generateReportPDF(reportData: any, title: string) {
   const doc = new jsPDF()
-  const pageWidth = doc.internal.pageWidth
-  const pageHeight = doc.internal.pageHeight
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 20
   let yPos = margin
 
@@ -217,7 +217,7 @@ export function generateReportPDF(reportData: any, title: string) {
   }
 
   // Footer
-  const totalPages = doc.getNumberOfPages()
+  const totalPages = (doc as any).internal.getNumberOfPages()
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
     doc.setFontSize(8)
