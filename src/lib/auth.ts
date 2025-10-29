@@ -56,9 +56,9 @@ export const authOptions: NextAuthOptions = {
             })
             
             if (studentProfile && studentProfile.user) {
-              user = studentProfile.user
+              user = studentProfile.user as any
               // Add studentId to user object for session
-              (user as any).studentId = studentProfile.studentId
+              user.studentId = studentProfile.studentId
               if (isDev) console.log('✅ Student found:', user.email)
             } else {
               if (isDev) console.log('❌ Student profile not found for:', studentId)
