@@ -27,7 +27,8 @@ interface RegistrationData {
   courses: Course[]
   totalCredits: number
   canRegister: boolean
-  registrationStatus: 'OPEN' | 'CLOSED' | 'COMPLETED'
+  registrationStatus: 'OPEN' | 'CLOSED' | 'COMPLETED' | 'FEES_OUTSTANDING' | 'MAINTENANCE'
+  registrationMessage?: string
 }
 
 export default function CourseRegistrationPage() {
