@@ -3,8 +3,12 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { generateLoginCredentialsEmail, sendEmail } from '@/lib/email-service'
+import { generateLoginCredentialsEmail, sendEmail, generatePasswordResetToken } from '@/lib/email-service'
+import { handleAPIError } from '@/lib/api-response'
 import bcrypt from 'bcryptjs'
+import { requireRole } from '@/lib/rbac'
+import { withMaintenanceCheck } from '@/lib/maintenance'
+import { UserRole } from '@/types/roles'
 
 const sendCredentialsSchema = z.object({
   studentId: z.string(),
@@ -14,13 +18,9 @@ const sendCredentialsSchema = z.object({
 })
 
 // POST: Send login credentials to student (Admin only)
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-
-    if (!session || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     const body = await request.json()
     const validatedData = sendCredentialsSchema.parse(body)
@@ -63,14 +63,18 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Generate login credentials email
+    // Generate password reset token and login email with setup link
+    const token = await generatePasswordResetToken(student.email)
+    const baseUrl = process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`
+
     const loginCredentialsEmail = generateLoginCredentialsEmail({
       studentName: student.name || `${student.studentProfile.firstName} ${student.studentProfile.lastName}`,
       email: student.email,
       studentId: student.studentProfile?.studentId || 'N/A',
       password: password,
       hallOfResidence: validatedData.hallOfResidence || 'To be assigned',
-      loginUrl: `${process.env.NEXTAUTH_URL}/auth/login`,
+      loginUrl: `${baseUrl}/auth/login`,
       courseRegistrationInstructions: `
         <p><strong>Course Registration is now OPEN!</strong></p>
         <p>You can now register for courses for the 2024/2025 academic year. Here's how:</p>
@@ -82,7 +86,8 @@ export async function POST(request: NextRequest) {
           <li>Check your timetable after registration</li>
         </ol>
         <p><strong>Important:</strong> Course registration is open to all students who have made payments. Make sure to register before the deadline!</p>
-      `
+      `,
+      resetLink
     })
 
     // Send email
@@ -122,21 +127,12 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error sending login credentials:', error)
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleAPIError(error)
   }
 }
+
+export const POST = withMaintenanceCheck(requireRole(UserRole.ADMIN, POSTHandler));
+export const GET = withMaintenanceCheck(requireRole(UserRole.ADMIN, GETHandler));
 
 // Helper function to generate random password
 function generateRandomPassword(): string {
@@ -149,7 +145,7 @@ function generateRandomPassword(): string {
 }
 
 // GET: Get students who need login credentials
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -231,10 +227,6 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching students:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleAPIError(error)
   }
 }

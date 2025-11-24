@@ -6,11 +6,12 @@ import bcrypt from 'bcryptjs'
 import { validateLoginAttempt, trackLoginAttempt } from '@/lib/account-security'
 import { prisma } from './prisma'
 import { UserRole } from '@/types'
+import { SECURITY_CONFIG } from '@/lib/security'
 
 const isDev = process.env.NODE_ENV === 'development'
 
 export const authOptions: NextAuthOptions = {
-  // adapter: PrismaAdapter(prisma), // Disabled for credentials provider
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -187,10 +188,10 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 4 * 60 * 60, // 4 hours (security improvement)
+    maxAge: Math.floor(SECURITY_CONFIG.SESSION_TIMEOUT / 1000),
   },
   jwt: {
-    maxAge: 4 * 60 * 60, // 4 hours (security improvement)
+    maxAge: Math.floor(SECURITY_CONFIG.SESSION_TIMEOUT / 1000),
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {

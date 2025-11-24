@@ -1,98 +1,70 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import fs from 'fs'
+import path from 'path'
 
-// S3 Configuration
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-})
+// Local filesystem-based storage replacing S3 while preserving the same API
+const PUBLIC_UPLOADS = path.join(process.cwd(), 'public', 'uploads')
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'school-portal-files'
+function ensureDir(dir: string) {
+  return fs.promises.mkdir(dir, { recursive: true })
+}
 
-// File upload to S3
+// File upload (local)
 export async function uploadFileToS3(
   file: Buffer,
   fileName: string,
   contentType: string,
   folder: string = 'uploads'
 ): Promise<string> {
-  try {
-    const key = `${folder}/${fileName}`
-    
-    const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: file,
-      ContentType: contentType,
-      ACL: 'private', // Private files
-    })
+  const targetDir = path.join(PUBLIC_UPLOADS, folder)
+  await ensureDir(targetDir)
 
-    await s3Client.send(command)
-    
-    // Return the S3 key for database storage
-    return key
-  } catch (error) {
-    console.error('Error uploading to S3:', error)
-    throw new Error('Failed to upload file to S3')
-  }
+  const targetPath = path.join(targetDir, fileName)
+  await fs.promises.writeFile(targetPath, file)
+
+  // Sidecar meta for contentType
+  try { await fs.promises.writeFile(`${targetPath}.meta`, JSON.stringify({ contentType }), 'utf8') } catch {}
+
+  // Return web-accessible path
+  const webPath = `/uploads/${folder}/${encodeURIComponent(fileName)}`
+  return webPath
 }
 
-// Generate signed URL for file access
-export async function getSignedFileUrl(s3Key: string, expiresIn: number = 3600): Promise<string> {
-  try {
-    const command = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: s3Key,
-    })
-
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn })
-    return signedUrl
-  } catch (error) {
-    console.error('Error generating signed URL:', error)
-    throw new Error('Failed to generate file URL')
-  }
+// Generate web URL (no signing needed for local files)
+export async function getSignedFileUrl(s3Key: string, _expiresIn: number = 3600): Promise<string> {
+  if (s3Key.startsWith('/uploads/')) return s3Key
+  return `/uploads/${s3Key.replace(/^\/*/, '')}`
 }
 
-// Delete file from S3
+// Delete local file
 export async function deleteFileFromS3(s3Key: string): Promise<void> {
+  const rel = s3Key.startsWith('/uploads/') ? s3Key.replace('/uploads/', '') : s3Key
+  const filePath = path.join(PUBLIC_UPLOADS, rel)
   try {
-    const command = new DeleteObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: s3Key,
-    })
-
-    await s3Client.send(command)
+    await fs.promises.unlink(filePath)
+    // Delete meta if exists
+    try { await fs.promises.unlink(`${filePath}.meta`) } catch {}
   } catch (error) {
-    console.error('Error deleting from S3:', error)
-    throw new Error('Failed to delete file from S3')
+    console.error('Error deleting local file:', error)
+    throw new Error('Failed to delete local file')
   }
 }
 
-// Generate unique filename
+// Generate unique filename compatible with prior usage
 export function generateS3FileName(originalName: string, userId: string, category: string): string {
   const timestamp = Date.now()
   const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_')
-  const extension = originalName.substring(originalName.lastIndexOf('.'))
-  
-  return `${category}/${userId}/${timestamp}_${sanitizedName}${extension}`
+  const extensionIndex = sanitizedName.lastIndexOf('.')
+  const extension = extensionIndex >= 0 ? sanitizedName.substring(extensionIndex) : ''
+  const base = extensionIndex >= 0 ? sanitizedName.substring(0, extensionIndex) : sanitizedName
+  return `${category}/${userId}/${timestamp}_${base}${extension}`
 }
 
-// File type detection
+// File type detection (unchanged)
 export function getFileCategory(fileName: string, contentType: string): string {
   const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
-  
-  if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(extension)) {
-    return 'images'
-  } else if (['.pdf', '.doc', '.docx', '.txt'].includes(extension)) {
-    return 'documents'
-  } else if (contentType.startsWith('image/')) {
-    return 'images'
-  } else if (contentType.includes('pdf') || contentType.includes('document')) {
-    return 'documents'
-  }
-  
+  if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(extension)) return 'images'
+  if (['.pdf', '.doc', '.docx', '.txt'].includes(extension)) return 'documents'
+  if (contentType.startsWith('image/')) return 'images'
+  if (contentType.includes('pdf') || contentType.includes('document')) return 'documents'
   return 'files'
 }

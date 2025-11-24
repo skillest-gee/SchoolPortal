@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { uploadFileToS3, generateS3FileName, getFileCategory } from '@/lib/s3-storage'
+import { saveBufferLocally, sanitizeFileName } from '@/lib/file-upload'
+import { withUploadRateLimit } from '@/lib/rate-limit'
+import { withMaintenanceCheck } from '@/lib/maintenance'
+import { handleAPIError } from '@/lib/api-response'
 
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB default
 
@@ -44,7 +47,9 @@ function simpleFileValidation(file: File): { isValid: boolean; errors: string[] 
   }
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withMaintenanceCheck(withUploadRateLimit(POSTHandler));
+
+async function POSTHandler(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -78,63 +83,63 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Convert file to buffer and upload to S3
+    // Convert file to buffer and save locally
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    
+
     const uploadUserId = userId || 'anonymous'
-    const s3FileName = generateS3FileName(file.name, uploadUserId, type || 'document')
-    
-    console.log('Uploading file to S3:', {
-      fileName: s3FileName,
+    const safeOriginalName = sanitizeFileName(file.name)
+    const category = type || 'document'
+
+    console.log('Saving file locally:', {
+      originalName: safeOriginalName,
       contentType: file.type,
-      size: file.size
+      size: file.size,
+      userId: uploadUserId,
+      category
     })
 
-    const s3Key = await uploadFileToS3(
+    const saved = await saveBufferLocally(
       buffer,
-      s3FileName,
-      file.type || 'application/octet-stream',
-      getFileCategory(file.name, file.type)
+      safeOriginalName,
+      uploadUserId,
+      category,
+      file.type || 'application/octet-stream'
     )
 
-    // Store file metadata in database
+    // Store file metadata in database (keep fields for backward compatibility)
     const uploadedFile = await prisma.uploadedFile.create({
       data: {
-        fileName: s3FileName,
+        fileName: saved.fileName,
         originalName: file.name,
         fileType: file.type,
         fileSize: file.size,
-        s3Key: s3Key,
-        s3Bucket: process.env.AWS_S3_BUCKET_NAME || 'school-portal-files',
+        s3Key: saved.filePath, // repurpose to store local URL path
+        s3Bucket: 'local-filesystem', // marker indicating local storage
         uploadedBy: uploadUserId,
-        category: type || 'document'
+        category
       }
     })
 
     // Return the file ID and URL for retrieval
-    const fileUrl = `/api/files/${uploadedFile.id}`
+    const fileUrl = saved.filePath
 
-    console.log('File uploaded successfully:', {
+    console.log('File saved successfully:', {
       fileId: uploadedFile.id,
-      s3Key: s3Key,
-      fileName: s3FileName,
+      filePath: saved.filePath,
+      fileName: saved.fileName,
       fileUrl: fileUrl
     })
 
     return NextResponse.json({
       success: true,
       filePath: fileUrl,
-      fileName: s3FileName,
+      fileName: saved.fileName,
       fileId: uploadedFile.id,
-      s3Key: s3Key
+      s3Key: saved.filePath
     })
 
   } catch (error) {
-    console.error('Error uploading file:', error)
-    return NextResponse.json(
-      { error: 'Failed to upload file' },
-      { status: 500 }
-    )
+    return handleAPIError(error)
   }
 }

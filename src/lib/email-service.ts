@@ -1,5 +1,7 @@
 // Email service for sending notifications using Resend
 import { Resend } from 'resend'
+import { prisma } from '@/lib/prisma'
+import { generateSecureToken } from '@/lib/security'
 
 const resend = new Resend(process.env.RESEND_API_KEY || process.env.EMAIL_SERVER_PASSWORD)
 
@@ -37,6 +39,7 @@ export interface LoginCredentialsEmailData {
   hallOfResidence: string
   loginUrl: string
   courseRegistrationInstructions: string
+  resetLink?: string
 }
 
 // Email templates
@@ -287,9 +290,15 @@ export function generateLoginCredentialsEmail(data: LoginCredentialsEmailData): 
           <div class="credential-item">
             <strong>Student ID:</strong> <span style="color: #2196F3; font-weight: bold; font-size: 18px;">${data.studentId}</span>
           </div>
+          ${data.resetLink ? `
+          <div class="credential-item">
+            <strong>Password Setup:</strong> <a href="${data.resetLink}" class="button">Set Your Password</a>
+          </div>
+          ` : `
           <div class="credential-item">
             <strong>Password:</strong> <span style="color: #f44336; font-weight: bold; font-size: 16px;">${data.password}</span>
           </div>
+          `}
           <div class="credential-item">
             <strong>Login URL:</strong> <a href="${data.loginUrl}" class="button">Access Student Portal</a>
           </div>
@@ -357,7 +366,7 @@ Thank you for your payment confirmation. Your admission fee has been processed s
 
 Your Login Credentials:
 - Student ID: ${data.studentId}
-- Password: ${data.password}
+- ${data.resetLink ? `Set your password at: ${data.resetLink}` : `Password: ${data.password}` }
 - Login URL: ${data.loginUrl}
 
 Security Notice:
@@ -500,4 +509,26 @@ export async function sendEmailDirect(to: string, subject: string, html: string,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     }
   }
+}
+
+export async function generatePasswordResetToken(email: string): Promise<string> {
+  const token = generateSecureToken(32)
+  const expires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+  await prisma.passwordResetToken.create({
+    data: { email, token, expires, used: false }
+  })
+  return token
+}
+
+export async function sendCredentialsEmail(email: string, name: string, tempPassword?: string) {
+  // Generate secure reset token instead of sending password
+  const token = await generatePasswordResetToken(email)
+  const baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`
+
+  const subject = 'Welcome - Set Your Password'
+  const html = `Hello ${name},<br/>Use this link to set your password: <a href="${resetLink}">${resetLink}</a>`
+  const text = `Hello ${name}, Use this link to set your password: ${resetLink}`
+
+  return await sendEmail({ to: email, subject, html, text })
 }

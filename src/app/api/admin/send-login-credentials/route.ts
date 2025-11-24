@@ -3,10 +3,14 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { generateLoginCredentialsEmail, sendEmail } from '@/lib/email-service'
+import { generateLoginCredentialsEmail, sendEmail, generatePasswordResetToken } from '@/lib/email-service'
+import { handleAPIError } from '@/lib/api-response'
 import { generateSecurePassword } from '@/lib/password-validation'
 import { createProgrammeFees } from '@/lib/fee-utils'
 import bcrypt from 'bcryptjs'
+import { requireRole } from '@/lib/rbac'
+import { withMaintenanceCheck } from '@/lib/maintenance'
+import { UserRole } from '@/types/roles'
 
 const sendCredentialsSchema = z.object({
   studentId: z.string().min(1, 'Student ID is required'),
@@ -15,24 +19,9 @@ const sendCredentialsSchema = z.object({
 })
 
 // POST: Send login credentials to student after payment confirmation
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // Only admins can send login credentials
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Forbidden: Only administrators can send login credentials' },
-        { status: 403 }
-      )
-    }
 
     const body = await request.json()
     const validatedData = sendCredentialsSchema.parse(body)
@@ -114,14 +103,18 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Generate and send login credentials email
+    // Generate password reset token and send login email with setup link
+    const token = await generatePasswordResetToken(student.email)
+    const baseUrl = process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`
+
     const loginEmail = generateLoginCredentialsEmail({
       studentName: student.name || 'Student',
       email: student.email,
       studentId: student.studentProfile?.studentId || 'N/A',
       password: newPassword,
       hallOfResidence: validatedData.hallOfResidence,
-      loginUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/auth/login`,
+      loginUrl: `${baseUrl}/auth/login`,
       courseRegistrationInstructions: validatedData.courseRegistrationInstructions || `
         Course Registration Instructions:
         1. Login to the student portal using your credentials
@@ -135,7 +128,8 @@ export async function POST(request: NextRequest) {
         • You must register for at least 15 credit hours
         • Some courses may have prerequisites
         • Contact your academic advisor for course selection guidance
-      `
+      `,
+      resetLink
     })
 
     const emailResult = await sendEmail(loginEmail)
@@ -161,7 +155,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔐 LOGIN CREDENTIALS SENT:`)
     console.log(`   Student: ${student.name} (${student.studentProfile?.studentId})`)
     console.log(`   Email: ${student.email}`)
-    console.log(`   Password: ${newPassword}`)
+    console.log(`   Reset Link: ${resetLink}`)
     console.log(`   Hall: ${validatedData.hallOfResidence}`)
 
     return NextResponse.json({
@@ -178,18 +172,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error sending login credentials:', error)
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleAPIError(error)
   }
 }
+
+export const POST = withMaintenanceCheck(requireRole(UserRole.ADMIN, POSTHandler));

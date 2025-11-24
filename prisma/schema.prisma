@@ -693,27 +693,6 @@ model TimetableEntry {
   @@map("timetable_entries")
 }
 
-model Timetable {
-  id         String   @id @default(cuid())
-  courseId   String
-  studentId  String?
-  lecturerId String?
-  dayOfWeek  String
-  startTime  String
-  endTime    String
-  location   String?
-  room       String?
-  type       String   @default("LECTURE")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([courseId])
-  @@index([dayOfWeek])
-  @@map("timetable")
-}
-
-// Duplicate models removed - indexes are already in the main model definitions above
-
 // Database indexes for performance optimization
 // These will be created automatically when running migrations
 

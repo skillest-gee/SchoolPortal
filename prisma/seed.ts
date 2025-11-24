@@ -97,10 +97,12 @@ async function main() {
       name: 'Clement Onibiyo Arthur',
       passwordHash: studentPassword,
       role: 'STUDENT',
-      indexNumber: 'CS/ITC/21/0001', // Sample index number
       isActive: true,
     },
   })
+
+  // Fetch the IT programme (for student)
+  const itProgramme = await prisma.programme.findFirst({ where: { code: 'IT' } })
 
   // Create comprehensive student profile
   await prisma.studentProfile.upsert({
@@ -109,24 +111,24 @@ async function main() {
     create: {
       userId: student.id,
       studentId: 'STU2024001',
-      
-      // Personal Information (set by admin)
+
+      // Personal Info
       title: 'MR.',
       firstName: 'CLEMENT',
       middleName: 'ONIBIYO',
       surname: 'ARTHUR',
       gender: 'M',
       dateOfBirth: new Date('2004-01-23'),
-      
-      // Academic Information (set by admin)
+
+      // Academic Info
       programme: 'BACHELOR OF SCIENCE (INFORMATION TECHNOLOGY)',
       currentMajor: 'INFORMATION TECHNOLOGY',
       level: '400',
-      hall: 'VALCO HALL',
-      gpa: 0.0, // New students start with 0.00 GPA
       yearOfStudy: '4th Year',
-      
-      // Contact Information (editable by student)
+      hall: 'VALCO HALL',
+      gpa: 0.0,
+
+      // Contacts
       institutionalEmail: 'student@school.edu',
       roomNo: 'Room 205',
       personalEmail: 'clement.arthur@gmail.com',
@@ -134,19 +136,19 @@ async function main() {
       gpsAddress: 'CC-114-5709',
       cellphone: '0249780093',
       homePhone: '055507769',
-      
-      // Address Information (editable by student)
+
+      // Home Address
       homeAddress: 'EN 78 EYIFUA ESTATE CAPE COAST',
       postalAddress: 'JULIANA AGGREY GRA P.O.BOX CT958 CAPE COAST',
       postalTown: 'CAPE COAST',
       placeOfBirth: 'EKUMFI ASAAFA',
       hometown: 'EKUMFI ASAAFA',
-      
+
       // Legacy fields
       address: 'EN 78 EYIFUA ESTATE CAPE COAST',
       phone: '0249780093',
       program: 'INFORMATION TECHNOLOGY',
-    },
+    }
   })
 
   // Create courses

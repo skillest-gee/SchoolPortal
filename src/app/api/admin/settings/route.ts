@@ -53,6 +53,13 @@ const systemSettingsSchema = z.object({
   backupRetention: z.number().min(1, 'Backup retention must be at least 1 day')
 })
 
+const partialSystemSettingsSchema = systemSettingsSchema
+  .partial()
+  .refine(
+    (data) => Object.values(data).some((value) => value !== undefined),
+    { message: 'At least one setting must be provided' }
+  )
+
 // GET: Fetch system settings
 export async function GET(request: NextRequest) {
   try {
@@ -193,10 +200,20 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const validatedData = systemSettingsSchema.parse(body)
+    const validatedData = partialSystemSettingsSchema.parse(body)
+    const settingsEntries = Object.entries(validatedData).filter(
+      ([, value]) => value !== undefined
+    )
+
+    if (settingsEntries.length === 0) {
+      return NextResponse.json(
+        { error: 'No settings provided to update' },
+        { status: 400 }
+      )
+    }
 
     // Update settings in database
-    const settingsToUpdate = Object.entries(validatedData).map(([key, value]) => ({
+    const settingsToUpdate = settingsEntries.map(([key, value]) => ({
       key,
       value: String(value),
       category: getCategoryForKey(key)

@@ -7,7 +7,13 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { 
+  Select, 
+  SelectTrigger, 
+  SelectContent, 
+  SelectItem, 
+  SelectValue 
+} from '@/components/ui/select'
 import { Alert } from '@/components/ui/alert'
 import Loading from '@/components/ui/loading'
 import { 
@@ -54,7 +60,7 @@ const SEMESTERS = ['First Semester', 'Second Semester']
 const ACADEMIC_YEARS = ['2023/2024', '2024/2025', '2025/2026']
 
 export default function CourseRegistrationManagement() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const [periods, setPeriods] = useState<CourseRegistrationPeriod[]>([])
   const [loading, setLoading] = useState(true)
@@ -101,8 +107,8 @@ export default function CourseRegistrationManagement() {
       const response = await fetch('/api/admin/settings')
       if (response.ok) {
         const data = await response.json()
-        if (data.success && data.settings) {
-          setRegistrationOpen(data.settings.registrationOpen ?? true)
+        if (data.success && data.data) {
+          setRegistrationOpen(data.data.registrationOpen ?? true)
         }
       }
     } catch (err) {
@@ -161,6 +167,10 @@ export default function CourseRegistrationManagement() {
     e.preventDefault()
     try {
       setError('')
+      if (!formData.name || !formData.academicYear || !formData.semester || !formData.startDate || !formData.endDate) {
+        setError('Please fill in all required fields before saving the registration period.')
+        return
+      }
       
       const url = editingPeriod 
         ? `/api/admin/registration-periods/${editingPeriod.id}`
@@ -379,69 +389,87 @@ export default function CourseRegistrationManagement() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Academic Year
               </label>
-              <Select
-                value={academicYearFilter}
-                onValueChange={setAcademicYearFilter}
-              >
-                <option value="">All Years</option>
-                {ACADEMIC_YEARS.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
+              <Select value={academicYearFilter} onValueChange={setAcademicYearFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Years" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Years</SelectItem>
+                  {ACADEMIC_YEARS.map(year => (
+                    <SelectItem key={year} value={year}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Semester
               </label>
-              <Select
-                value={semesterFilter}
-                onValueChange={setSemesterFilter}
-              >
-                <option value="">All Semesters</option>
-                {SEMESTERS.map(semester => (
-                  <option key={semester} value={semester}>{semester}</option>
-                ))}
+              <Select value={semesterFilter} onValueChange={setSemesterFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Semesters" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Semesters</SelectItem>
+                  {SEMESTERS.map(semester => (
+                    <SelectItem key={semester} value={semester}>
+                      {semester}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Department
               </label>
-              <Select
-                value={departmentFilter}
-                onValueChange={setDepartmentFilter}
-              >
-                <option value="">All Departments</option>
-                {DEPARTMENTS.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Departments</SelectItem>
+                  {DEPARTMENTS.map(dept => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Level
               </label>
-              <Select
-                value={levelFilter}
-                onValueChange={setLevelFilter}
-              >
-                <option value="">All Levels</option>
-                {LEVELS.map(level => (
-                  <option key={level} value={level}>{level} Level</option>
-                ))}
+              <Select value={levelFilter} onValueChange={setLevelFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Levels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Levels</SelectItem>
+                  {LEVELS.map(level => (
+                    <SelectItem key={level} value={level}>
+                      {level} Level
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Status
               </label>
-              <Select
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-              >
-                <option value="">All Status</option>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </div>
@@ -479,12 +507,17 @@ export default function CourseRegistrationManagement() {
                   <Select
                     value={formData.academicYear}
                     onValueChange={(value) => setFormData({ ...formData, academicYear: value })}
-                    required
                   >
-                    <option value="">Select Academic Year</option>
-                    {ACADEMIC_YEARS.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
+                    <SelectTrigger aria-required="true">
+                      <SelectValue placeholder="Select Academic Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ACADEMIC_YEARS.map(year => (
+                        <SelectItem key={year} value={year}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -494,12 +527,17 @@ export default function CourseRegistrationManagement() {
                   <Select
                     value={formData.semester}
                     onValueChange={(value) => setFormData({ ...formData, semester: value })}
-                    required
                   >
-                    <option value="">Select Semester</option>
-                    {SEMESTERS.map(semester => (
-                      <option key={semester} value={semester}>{semester}</option>
-                    ))}
+                    <SelectTrigger aria-required="true">
+                      <SelectValue placeholder="Select Semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SEMESTERS.map(semester => (
+                        <SelectItem key={semester} value={semester}>
+                          {semester}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -510,10 +548,17 @@ export default function CourseRegistrationManagement() {
                     value={formData.department}
                     onValueChange={(value) => setFormData({ ...formData, department: value })}
                   >
-                    <option value="">All Departments</option>
-                    {DEPARTMENTS.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Departments</SelectItem>
+                      {DEPARTMENTS.map(dept => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -524,10 +569,17 @@ export default function CourseRegistrationManagement() {
                     value={formData.level}
                     onValueChange={(value) => setFormData({ ...formData, level: value })}
                   >
-                    <option value="">All Levels</option>
-                    {LEVELS.map(level => (
-                      <option key={level} value={level}>{level} Level</option>
-                    ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Levels" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Levels</SelectItem>
+                      {LEVELS.map(level => (
+                        <SelectItem key={level} value={level}>
+                          {level} Level
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div>
